@@ -170,8 +170,53 @@ export default function AdminDashboard() {
                       <input type="number" required value={editingProduct.price} onChange={e => setEditingProduct({...editingProduct, price: Number(e.target.value)})} className="w-full p-2 border rounded-xl" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Image URL</label>
-                      <input required value={editingProduct.imageUrl} onChange={e => setEditingProduct({...editingProduct, imageUrl: e.target.value})} className="w-full p-2 border rounded-xl" />
+                      <label className="block text-sm font-medium mb-1">Product Image</label>
+                      <input 
+                         type="file" 
+                         accept="image/*"
+                         onChange={(e) => {
+                           const file = e.target.files?.[0];
+                           if (!file) return;
+
+                           const reader = new FileReader();
+                           reader.onload = (event) => {
+                             const img = new Image();
+                             img.onload = () => {
+                               const canvas = document.createElement('canvas');
+                               const MAX_WIDTH = 800;
+                               const MAX_HEIGHT = 800;
+                               let width = img.width;
+                               let height = img.height;
+
+                               if (width > height) {
+                                 if (width > MAX_WIDTH) {
+                                   height *= Math.round(MAX_WIDTH / width);
+                                   width = MAX_WIDTH;
+                                 }
+                               } else {
+                                 if (height > MAX_HEIGHT) {
+                                   width *= Math.round(MAX_HEIGHT / height);
+                                   height = MAX_HEIGHT;
+                                 }
+                               }
+
+                               canvas.width = width;
+                               canvas.height = height;
+                               const ctx = canvas.getContext('2d');
+                               ctx?.drawImage(img, 0, 0, width, height);
+                               
+                               const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                               setEditingProduct({ ...editingProduct!, imageUrl: dataUrl });
+                             };
+                             img.src = event.target?.result as string;
+                           };
+                           reader.readAsDataURL(file);
+                         }} 
+                         className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-brand-sand-100 file:text-brand-green-900 hover:file:bg-brand-sand-200" 
+                      />
+                      {editingProduct.imageUrl && (
+                        <img src={editingProduct.imageUrl} alt="Preview" className="mt-2 h-16 w-16 object-cover rounded-xl border border-brand-sand-200" />
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 mt-4">
