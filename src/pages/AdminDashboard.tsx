@@ -195,9 +195,9 @@ export default function AdminDashboard() {
                   <h4 className="font-medium text-brand-green-900">{product.name}</h4>
                   <p className="text-brand-gold-600 font-medium text-sm mt-1">₹{product.price}</p>
                 </div>
-                <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-center gap-2 px-3 border-l bg-gray-50 translate-x-full group-hover:translate-x-0 transition-transform">
-                  <button onClick={() => { setIsAdding(false); setEditingProduct(product); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Edit size={16}/></button>
-                  <button onClick={() => handleDeleteProduct(product.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button>
+                <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-center gap-2 px-3 border-l bg-gray-50">
+                  <button onClick={() => { setIsAdding(false); setEditingProduct(product); }} className="p-2 text-blue-600 hover:bg-blue-100 bg-blue-50 transition-colors rounded-lg"><Edit size={16}/></button>
+                  <button onClick={() => handleDeleteProduct(product.id)} className="p-2 text-red-600 hover:bg-red-100 bg-red-50 transition-colors rounded-lg"><Trash2 size={16}/></button>
                 </div>
               </div>
             ))}
