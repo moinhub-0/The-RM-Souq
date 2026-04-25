@@ -3,7 +3,6 @@ import { ShoppingBag, User } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import SidebarMenu from './SidebarMenu';
-import logoUrl from '../logo.png';
 
 export default function Navbar() {
   const { totalItems } = useCart();
@@ -18,7 +17,7 @@ export default function Navbar() {
             
             <Link to="/" className="flex items-center gap-3 ml-2 group">
               <div className="bg-white rounded-xl p-1 shadow-sm group-hover:shadow-md transition-shadow">
-                 <img src={logoUrl} alt="The RM Souq Logo" className="h-12 w-auto object-contain rounded-lg" onError={(e) => {
+                 <img src="/logo.png" alt="The RM Souq Logo" className="h-12 w-auto object-contain rounded-lg" onError={(e) => {
                   e.currentTarget.style.display = 'none';
                  }} />
               </div>

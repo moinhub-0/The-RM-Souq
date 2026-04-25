@@ -126,7 +126,14 @@ export default function ProductDetails() {
           <div>
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm font-semibold tracking-widest uppercase text-brand-gold-600 mb-2">{product.category}</p>
+                <div className="flex items-center gap-3 mb-2">
+                  <p className="text-sm font-semibold tracking-widest uppercase text-brand-gold-600">{product.category}</p>
+                  {product.weight && (
+                     <span className="text-xs font-bold text-brand-sand-300 bg-brand-sand-50 px-2 py-0.5 rounded-md border border-brand-sand-100">
+                       {product.weight}
+                     </span>
+                  )}
+                </div>
                 <h1 className="text-4xl sm:text-5xl mb-4 text-brand-green-900">{product.name}</h1>
               </div>
               <button 
@@ -153,9 +160,19 @@ export default function ProductDetails() {
             </p>
           </div>
           
+          <div className="bg-brand-sand-50 border border-brand-sand-200 rounded-xl p-4 flex items-start gap-4">
+            <div className="bg-brand-gold-100 p-2 rounded-full text-brand-gold-600 shrink-0 mt-1">
+               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
+            </div>
+            <div>
+              <h3 className="font-semibold text-brand-green-900">Make it a Gift! 🎁</h3>
+              <p className="text-sm text-gray-600 mt-1 leading-relaxed">Want to send this to a loved one? Add to cart and select the <strong>gift option</strong> at checkout for elegant packaging.</p>
+            </div>
+          </div>
+
           <button 
             onClick={() => addToCart(product)}
-            className="w-full bg-brand-green-900 text-brand-gold-400 py-4 rounded-xl font-semibold hover:bg-brand-green-800 transition-colors text-lg"
+            className="w-full bg-brand-green-900 text-brand-gold-400 py-4 rounded-xl font-semibold hover:bg-brand-green-800 transition-colors text-lg shadow-md hover:shadow-lg"
           >
             Add to Cart
           </button>

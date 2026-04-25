@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, getDocs, doc, updateDoc, deleteDoc, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useProducts, Product } from '../contexts/ProductContext';
-import { LayoutDashboard, Users, ShoppingBag, Package, Plus, Trash2, Edit } from 'lucide-react';
+import { LayoutDashboard, Plus, Trash2, Edit } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function AdminDashboard() {
   const { user, loading } = useAuth();
@@ -17,6 +18,7 @@ export default function AdminDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [activeChartBox, setActiveChartBox] = useState<'orders' | 'revenue' | 'gift' | 'regular'>('orders');
 
   // Edit Product State
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -50,18 +52,40 @@ export default function AdminDashboard() {
     }
   };
 
-  if (loading || loadingData) return <div className="text-center py-20 text-gray-500">Loading admin data...</div>;
-
   // Analytics Calculations
   const now = Date.now();
   const ONE_DAY = 24 * 60 * 60 * 1000;
   
   const todaysOrders = orders.filter(o => now - o.createdAt < ONE_DAY);
-  const last7DaysOrders = orders.filter(o => now - o.createdAt < 7 * ONE_DAY);
-  const last30DaysOrders = orders.filter(o => now - o.createdAt < 30 * ONE_DAY);
-
-  const totalRevenue = orders.reduce((acc, curr) => acc + (curr.totalPrice || 0), 0);
   const todaysRevenue = todaysOrders.reduce((acc, curr) => acc + (curr.totalPrice || 0), 0);
+  
+  const totalOrders = orders.length;
+  const totalRevenue = orders.reduce((acc, curr) => acc + (curr.totalPrice || 0), 0);
+  const giftOrders = orders.filter(o => o.isGift);
+  const regularOrders = orders.filter(o => !o.isGift);
+
+  const chartData = useMemo(() => {
+    // Generate last 7 days data
+    const data = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(now - i * ONE_DAY);
+      const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+      const endOfDay = startOfDay + ONE_DAY;
+      
+      const dayOrders = orders.filter(o => o.createdAt >= startOfDay && o.createdAt < endOfDay);
+      
+      data.push({
+        date: date.toLocaleDateString('en-US', { weekday: 'short' }),
+        orders: dayOrders.length,
+        revenue: dayOrders.reduce((sum, o) => sum + (o.totalPrice || 0), 0),
+        gift: dayOrders.filter(o => o.isGift).length,
+        regular: dayOrders.filter(o => !o.isGift).length,
+      });
+    }
+    return data;
+  }, [orders, now, ONE_DAY]);
+
+  if (loading || loadingData) return <div className="text-center py-20 text-gray-500">Loading admin data...</div>;
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,22 +138,60 @@ export default function AdminDashboard() {
       {activeTab === 'analytics' && (
         <div className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-brand-sand-200">
-              <h3 className="text-gray-500 text-sm font-medium mb-2 uppercase tracking-wider">Today's Orders</h3>
-              <p className="text-4xl font-serif text-brand-green-900">{todaysOrders.length}</p>
-              <p className="text-sm text-brand-green-700 mt-2 font-medium">₹{todaysRevenue.toLocaleString()} revenue</p>
-            </div>
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-brand-sand-200">
-              <h3 className="text-gray-500 text-sm font-medium mb-2 uppercase tracking-wider">Last 7 Days</h3>
-              <p className="text-4xl font-serif text-brand-green-900">{last7DaysOrders.length}</p>
-            </div>
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-brand-sand-200">
-              <h3 className="text-gray-500 text-sm font-medium mb-2 uppercase tracking-wider">Last 30 Days</h3>
-              <p className="text-4xl font-serif text-brand-green-900">{last30DaysOrders.length}</p>
-            </div>
-            <div className="bg-brand-green-900 p-6 rounded-2xl shadow-sm border border-brand-green-800 text-white">
-              <h3 className="text-brand-gold-300 text-sm font-medium mb-2 uppercase tracking-wider">Total Revenue</h3>
-              <p className="text-4xl font-serif text-brand-gold-400">₹{totalRevenue.toLocaleString()}</p>
+            <button 
+              onClick={() => setActiveChartBox('orders')}
+              className={`text-left p-6 rounded-2xl shadow-sm border transition-colors ${activeChartBox === 'orders' ? 'bg-brand-green-900 border-brand-green-800 text-white' : 'bg-white border-brand-sand-200 hover:border-brand-green-300'}`}
+            >
+              <h3 className={`text-sm font-medium mb-2 uppercase tracking-wider ${activeChartBox === 'orders' ? 'text-brand-gold-300' : 'text-gray-500'}`}>Total Orders</h3>
+              <p className={`text-4xl font-serif ${activeChartBox === 'orders' ? 'text-brand-gold-400' : 'text-brand-green-900'}`}>{totalOrders}</p>
+              <p className={`text-sm mt-2 font-medium ${activeChartBox === 'orders' ? 'text-brand-sand-200' : 'text-brand-green-700'}`}>Today: {todaysOrders.length}</p>
+            </button>
+            <button 
+              onClick={() => setActiveChartBox('revenue')}
+              className={`text-left p-6 rounded-2xl shadow-sm border transition-colors ${activeChartBox === 'revenue' ? 'bg-brand-green-900 border-brand-green-800 text-white' : 'bg-white border-brand-sand-200 hover:border-brand-green-300'}`}
+            >
+              <h3 className={`text-sm font-medium mb-2 uppercase tracking-wider ${activeChartBox === 'revenue' ? 'text-brand-gold-300' : 'text-gray-500'}`}>Total Revenue</h3>
+              <p className={`text-4xl font-serif ${activeChartBox === 'revenue' ? 'text-brand-gold-400' : 'text-brand-green-900'}`}>₹{totalRevenue.toLocaleString()}</p>
+              <p className={`text-sm mt-2 font-medium ${activeChartBox === 'revenue' ? 'text-brand-sand-200' : 'text-brand-green-700'}`}>Today: ₹{todaysRevenue.toLocaleString()}</p>
+            </button>
+            <button 
+              onClick={() => setActiveChartBox('gift')}
+              className={`text-left p-6 rounded-2xl shadow-sm border transition-colors ${activeChartBox === 'gift' ? 'bg-brand-green-900 border-brand-green-800 text-white' : 'bg-white border-brand-sand-200 hover:border-brand-green-300'}`}
+            >
+              <h3 className={`text-sm font-medium mb-2 uppercase tracking-wider ${activeChartBox === 'gift' ? 'text-brand-gold-300' : 'text-gray-500'}`}>Gifting Orders</h3>
+              <p className={`text-4xl font-serif ${activeChartBox === 'gift' ? 'text-brand-gold-400' : 'text-brand-green-900'}`}>{giftOrders.length}</p>
+            </button>
+            <button 
+              onClick={() => setActiveChartBox('regular')}
+              className={`text-left p-6 rounded-2xl shadow-sm border transition-colors ${activeChartBox === 'regular' ? 'bg-brand-green-900 border-brand-green-800 text-white' : 'bg-white border-brand-sand-200 hover:border-brand-green-300'}`}
+            >
+              <h3 className={`text-sm font-medium mb-2 uppercase tracking-wider ${activeChartBox === 'regular' ? 'text-brand-gold-300' : 'text-gray-500'}`}>Without Gifting</h3>
+              <p className={`text-4xl font-serif ${activeChartBox === 'regular' ? 'text-brand-gold-400' : 'text-brand-green-900'}`}>{regularOrders.length}</p>
+            </button>
+          </div>
+          
+          <div className="bg-white border border-brand-sand-200 shadow-sm rounded-2xl p-6">
+            <h3 className="text-xl font-serif text-brand-green-900 mb-6 capitalize">{activeChartBox} (Last 7 Days)</h3>
+            <div className="h-80 w-full text-sm">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                  <XAxis dataKey="date" stroke="#6b7280" />
+                  <YAxis stroke="#6b7280" width={40} />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb' }}
+                    formatter={(value: number) => activeChartBox === 'revenue' ? `₹${value.toLocaleString()}` : value}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey={activeChartBox} 
+                    stroke="#14532D" 
+                    strokeWidth={3}
+                    dot={{ fill: '#fbbf24', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, fill: '#fbbf24', stroke: '#14532D' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </div>
@@ -170,10 +232,15 @@ export default function AdminDashboard() {
                       <input type="number" required value={editingProduct.price} onChange={e => setEditingProduct({...editingProduct, price: Number(e.target.value)})} className="w-full p-2 border rounded-xl" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Product Image</label>
-                      <input 
-                         type="file" 
-                         accept="image/*"
+                      <label className="block text-sm font-medium mb-1">Weight (Optional)</label>
+                      <input type="text" placeholder="e.g. 500g, 1kg" value={editingProduct.weight || ''} onChange={e => setEditingProduct({...editingProduct, weight: e.target.value})} className="w-full p-2 border rounded-xl" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Product Image</label>
+                    <input 
+                       type="file" 
+                       accept="image/*"
                          onChange={(e) => {
                            const file = e.target.files?.[0];
                            if (!file) return;
@@ -218,7 +285,7 @@ export default function AdminDashboard() {
                         <img src={editingProduct.imageUrl} alt="Preview" className="mt-2 h-16 w-16 object-cover rounded-xl border border-brand-sand-200" />
                       )}
                     </div>
-                  </div>
+
                   <div className="flex items-center gap-2 mt-4">
                     <input type="checkbox" id="isFeatured" checked={editingProduct.isFeatured || false} onChange={e => setEditingProduct({...editingProduct, isFeatured: e.target.checked})} />
                     <label htmlFor="isFeatured" className="text-sm font-medium">Featured Product</label>
@@ -285,8 +352,19 @@ export default function AdminDashboard() {
           {orders.sort((a,b) => b.createdAt - a.createdAt).slice(0, 20).map(order => (
             <div key={order.id} className="bg-white border rounded-2xl p-6 flex flex-col md:flex-row justify-between md:items-center gap-4 hover:border-brand-sand-300 transition-colors">
               <div>
-                <p className="font-medium text-brand-green-900">{order.userName} - ₹{order.totalPrice}</p>
-                <p className="text-xs text-gray-400 mt-1">{new Date(order.createdAt).toLocaleString()}</p>
+                <p className="font-medium text-brand-green-900 flex items-center gap-2">
+                  {order.userName} - ₹{order.totalPrice}
+                  {order.isGift && <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded-full font-bold">🎁 GIFT ORDER</span>}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">{new Date(order.createdAt).toLocaleString()} | Phone: {order.phone}</p>
+                <div className="mt-3 space-y-1">
+                  {order.items?.map((item: any, idx: number) => (
+                    <p key={idx} className="text-sm text-gray-700 flex items-center gap-2">
+                      <span className="w-6 h-6 bg-brand-sand-100 text-brand-green-900 rounded-md flex items-center justify-center text-xs font-bold">{item.quantity}x</span>
+                      {item.name}
+                    </p>
+                  ))}
+                </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center text-sm text-gray-600">
                 <span className="bg-brand-sand-100 px-3 py-1 rounded-full whitespace-nowrap">{order.items.length} items</span>

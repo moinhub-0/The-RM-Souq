@@ -10,6 +10,7 @@ interface Order {
   totalPrice: number;
   status: string;
   createdAt: number;
+  isGift?: boolean;
   shippingDetails: {
     fullAddress: string;
     city: string;
@@ -91,6 +92,11 @@ export default function MyOrders() {
                   <p className="text-xs text-gray-400 mt-1">Order ID: {order.id}</p>
                 </div>
                 <div className="flex items-center gap-4">
+                  {order.isGift && (
+                    <span className="bg-yellow-100 text-yellow-800 text-xs px-3 py-1 rounded-full font-bold flex items-center gap-1">
+                      🎁 Gift Order
+                    </span>
+                  )}
                   <span className="text-lg font-medium text-brand-green-900">₹{order.totalPrice.toLocaleString()}</span>
                   <span className={`px-3 py-1 rounded-full text-xs font-medium uppercase tracking-wider ${
                     order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :

@@ -6,6 +6,62 @@ import { useProducts, Product } from '../contexts/ProductContext';
 import { motion } from 'motion/react';
 import { Heart } from 'lucide-react';
 
+const ProductCard: React.FC<{ 
+  product: Product; 
+  index: number; 
+  isWished: boolean; 
+  onToggleWishlist: (e: React.MouseEvent, productId: string) => void;
+  onAddToCart: (product: Product) => void;
+}> = ({ product, index, isWished, onToggleWishlist, onAddToCart }) => {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1 }}
+      className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-brand-sand-200 flex flex-col relative"
+    >
+      <Link to={`/product/${product.id}`} className="absolute inset-0 z-0" aria-label={`View ${product.name}`} />
+      
+      <div className="aspect-square overflow-hidden relative bg-brand-sand-100">
+        <img 
+          src={product.imageUrl} 
+          alt={product.name} 
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+        />
+        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold text-brand-green-900 shadow-sm z-10">
+          {product.category}
+        </div>
+        <button 
+          onClick={(e) => onToggleWishlist(e, product.id)}
+          className={`absolute top-4 left-4 p-2 rounded-full backdrop-blur-sm z-10 transition-colors shadow-sm ${isWished ? 'bg-red-50 text-red-500' : 'bg-white/90 text-gray-400 hover:text-red-500'}`}
+        >
+          <Heart size={18} fill={isWished ? "currentColor" : "none"} />
+        </button>
+      </div>
+      <div className="p-6 flex flex-col flex-1 relative z-10 pointer-events-none">
+        <div className="flex justify-between items-start mb-2">
+          <h3 className="text-xl text-brand-green-900 font-serif line-clamp-1">{product.name}</h3>
+          {product.weight && (
+            <span className="text-xs font-semibold text-brand-sand-300 bg-brand-sand-50 px-2 py-0.5 rounded-md border border-brand-sand-100 whitespace-nowrap ml-2">
+              {product.weight}
+            </span>
+          )}
+        </div>
+        <p className="text-sm text-gray-500 mb-4 line-clamp-2">{product.description}</p>
+        <div className="mt-auto flex items-center justify-between pointer-events-auto">
+          <span className="font-semibold text-lg text-brand-green-700">₹ {product.price.toLocaleString()}</span>
+          <button 
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddToCart(product); }}
+            className="bg-brand-green-900 text-brand-gold-400 hover:bg-brand-green-800 hover:text-brand-gold-300 px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+          >
+            Add to Cart
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
 export default function Shop() {
   const { addToCart } = useCart();
   const { user, profile, toggleWishlist, loginWithGoogle } = useAuth();
@@ -23,61 +79,27 @@ export default function Shop() {
     toggleWishlist(productId);
   };
 
-  const ProductCard = ({ product, index }: { product: Product, index: number }) => {
-    const isWished = profile?.wishlist?.includes(product.id) || false;
-
-    return (
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.1 }}
-        className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-brand-sand-200 flex flex-col relative"
-      >
-        <Link to={`/product/${product.id}`} className="absolute inset-0 z-0" aria-label={`View ${product.name}`} />
-        
-        <div className="aspect-square overflow-hidden relative bg-brand-sand-100">
-          <img 
-            src={product.imageUrl} 
-            alt={product.name} 
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-          <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold text-brand-green-900 shadow-sm z-10">
-            {product.category}
-          </div>
-          <button 
-            onClick={(e) => handleToggleWishlist(e, product.id)}
-            className={`absolute top-4 left-4 p-2 rounded-full backdrop-blur-sm z-10 transition-colors shadow-sm ${isWished ? 'bg-red-50 text-red-500' : 'bg-white/90 text-gray-400 hover:text-red-500'}`}
-          >
-            <Heart size={18} fill={isWished ? "currentColor" : "none"} />
-          </button>
-        </div>
-        <div className="p-6 flex flex-col flex-1 relative z-10 pointer-events-none">
-          <h3 className="text-xl mb-2 text-brand-green-900 font-serif">{product.name}</h3>
-          <p className="text-sm text-gray-500 mb-4 line-clamp-2">{product.description}</p>
-          <div className="mt-auto flex items-center justify-between pointer-events-auto">
-            <span className="font-semibold text-lg text-brand-green-700">â¹. {product.price.toLocaleString()}</span>
-            <button 
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); addToCart(product); }}
-              className="bg-brand-green-900 text-brand-gold-400 hover:bg-brand-green-800 hover:text-brand-gold-300 px-4 py-2 rounded-lg font-medium transition-colors text-sm"
-            >
-              Add to Cart
-            </button>
-          </div>
-        </div>
-      </motion.div>
-    );
-  };
-
   return (
     <div className="space-y-16 pb-16">
-      {/* Hero Section */}
-      <section className="bg-brand-green-800 text-brand-sand-50 rounded-3xl p-8 sm:p-16 text-center shadow-xl relative overflow-hidden">
+      {/* Combine Hero Section and Gifting Highlight */}
+      <section className="bg-brand-green-800 text-brand-sand-50 rounded-3xl p-6 sm:p-10 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center gap-8">
         <div className="absolute inset-0 opacity-10 bg-[url('https://images.unsplash.com/photo-1549673967-df509cacee8f?auto=format&fit=crop&w=1200&q=80')] bg-cover bg-center" />
-        <div className="relative z-10 max-w-3xl mx-auto space-y-6">
-          <h1 className="text-4xl sm:text-6xl text-brand-gold-400 leading-tight">Authentic Sunnah & Halal Provisions</h1>
-          <p className="text-lg sm:text-xl text-brand-sand-100 opacity-90 max-w-2xl mx-auto">
-            Discover our premium selection of carefully sourced dates and natural products, honoring tradition and purity.
+        <div className="relative z-10 flex-1 space-y-4 text-center md:text-left">
+          <h1 className="text-3xl sm:text-5xl text-brand-gold-400 leading-tight font-serif">Authentic Sunnah Provisions</h1>
+          <p className="text-base sm:text-lg text-brand-sand-100 opacity-90 max-w-xl">
+            Premium selection of carefully sourced dates and natural products, honoring tradition and purity.
           </p>
+        </div>
+        
+        {/* Compact Gifting Badge/Card integrated in Hero */}
+        <div className="relative z-10 bg-brand-gold-50/10 backdrop-blur-md border border-brand-gold-400/30 rounded-2xl p-5 flex items-center gap-4 max-w-sm w-full shrink-0">
+          <div className="bg-brand-gold-400/20 p-3 rounded-full text-brand-gold-300">
+             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
+          </div>
+          <div>
+            <h3 className="text-brand-gold-400 font-bold tracking-wide uppercase text-sm">Premium Gifting</h3>
+            <p className="text-brand-sand-100 text-xs opacity-80 mt-1">Select "Make it a Gift" at checkout for elegant packaging.</p>
+          </div>
         </div>
       </section>
 
@@ -95,7 +117,14 @@ export default function Shop() {
               
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
                 {featuredProducts.map((product, index) => (
-                  <ProductCard key={product.id} product={product} index={index} />
+                  <ProductCard 
+                    key={product.id} 
+                    product={product} 
+                    index={index} 
+                    isWished={profile?.wishlist?.includes(product.id) || false}
+                    onToggleWishlist={handleToggleWishlist}
+                    onAddToCart={addToCart}
+                  />
                 ))}
               </div>
             </section>
@@ -109,7 +138,14 @@ export default function Shop() {
             
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
               {products.map((product, index) => (
-                <ProductCard key={product.id} product={product} index={index} />
+                <ProductCard 
+                  key={product.id} 
+                  product={product} 
+                  index={index} 
+                  isWished={profile?.wishlist?.includes(product.id) || false}
+                  onToggleWishlist={handleToggleWishlist}
+                  onAddToCart={addToCart}
+                />
               ))}
               {products.length === 0 && (
                 <div className="col-span-full text-center py-12 text-gray-500">

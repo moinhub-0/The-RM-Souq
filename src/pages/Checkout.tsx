@@ -22,6 +22,7 @@ export default function Checkout() {
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGift, setIsGift] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -77,7 +78,8 @@ export default function Checkout() {
         items: items,
         totalPrice: totalPrice,
         status: 'pending',
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        isGift: isGift
       };
       await addDoc(collection(db, 'orders'), newOrder);
 
@@ -85,9 +87,11 @@ export default function Checkout() {
       const waNumber = "917853903438";
       const itemListText = items.map(i => `- ${i.quantity}x ${i.name} (\u20B9${i.price * i.quantity})`).join('\n');
       
+      const giftMessage = isGift ? "🎁 *THIS IS A GIFT ORDER*\n*Payment Method requested:* UPI Only (No COD for gifts)\n\n" : "";
+
       const message = `*New Order: The RM Souq* \ud83d\uded2
 
-*Order Summary:*
+${giftMessage}*Order Summary:*
 ${itemListText}
 *Total:* \u20B9${totalPrice}
 
@@ -203,10 +207,40 @@ Please confirm my order and share available payment methods.`;
             </div>
 
             <div className="border-t border-brand-sand-200 pt-4 mb-6">
-              <div className="flex justify-between items-center text-xl font-serif text-brand-green-900">
+              <div className="flex justify-between items-center text-xl font-serif text-brand-green-900 mb-4">
                 <span>Total Amount</span>
-                <span>â¹. {totalPrice.toLocaleString()}</span>
+                <span>₹ {totalPrice.toLocaleString()}</span>
               </div>
+              
+              <div className={`border-2 p-5 rounded-2xl mb-6 transition-all shadow-sm ${isGift ? 'bg-brand-gold-50 border-brand-gold-400' : 'bg-white border-brand-sand-200 hover:border-brand-gold-300'}`}>
+                <label className="flex items-start gap-4 cursor-pointer">
+                  <div className={`mt-1 p-2 rounded-full transition-colors ${isGift ? 'bg-brand-gold-400 text-white shadow-md' : 'bg-brand-sand-100 text-brand-gold-500'}`}>
+                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-lg text-brand-green-900 block">Make this a Gift Order</span>
+                      <input 
+                        type="checkbox" 
+                        checked={isGift}
+                        onChange={(e) => setIsGift(e.target.checked)}
+                        className="w-5 h-5 accent-brand-gold-600 rounded border-gray-300 cursor-pointer" 
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                    <span className="text-sm text-gray-600 block mt-2 leading-relaxed">
+                      We'll package your items elegantly in our premium gift boxes, perfect for surprising your loved ones.
+                      {isGift && (
+                        <span className="block mt-3 text-brand-gold-800 bg-brand-gold-200/50 p-3 rounded-lg border border-brand-gold-200/50 font-medium">
+                          <span className="font-bold uppercase tracking-widest text-[10px] block opacity-70 mb-1">Important</span>
+                          Payment must be done via UPI for all gift orders (No Cash on Delivery).
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                </label>
+              </div>
+
               <p className="text-xs text-gray-500 mt-2 text-right">Payment instructions will be shared via WhatsApp</p>
             </div>
 

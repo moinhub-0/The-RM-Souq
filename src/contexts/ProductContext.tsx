@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { collection, onSnapshot, getDocs, writeBatch, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
@@ -11,6 +11,7 @@ export interface Product {
   category: string;
   currency: string;
   isFeatured?: boolean;
+  weight?: string;
 }
 
 export const INITIAL_SHOP_PRODUCTS: Product[] = [
