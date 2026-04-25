@@ -283,14 +283,52 @@ export default function AdminDashboard() {
       {activeTab === 'orders' && (
         <div className="space-y-4">
           {orders.sort((a,b) => b.createdAt - a.createdAt).slice(0, 20).map(order => (
-            <div key={order.id} className="bg-white border rounded-2xl p-6 flex flex-col md:flex-row justify-between md:items-center gap-4">
+            <div key={order.id} className="bg-white border rounded-2xl p-6 flex flex-col md:flex-row justify-between md:items-center gap-4 hover:border-brand-sand-300 transition-colors">
               <div>
                 <p className="font-medium text-brand-green-900">{order.userName} - ₹{order.totalPrice}</p>
                 <p className="text-xs text-gray-400 mt-1">{new Date(order.createdAt).toLocaleString()}</p>
               </div>
-              <div className="flex gap-2 text-sm text-gray-600">
-                <span className="bg-brand-sand-100 px-3 py-1 rounded-full">{order.items.length} items</span>
-                <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full uppercase text-xs font-bold tracking-wider">{order.status}</span>
+              <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center text-sm text-gray-600">
+                <span className="bg-brand-sand-100 px-3 py-1 rounded-full whitespace-nowrap">{order.items.length} items</span>
+                
+                <div className="flex items-center gap-2">
+                  <span className={`px-3 py-1 rounded-full uppercase text-xs font-bold tracking-wider ${
+                    order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                    order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                    'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {order.status}
+                  </span>
+                  
+                  {order.status === 'pending' && (
+                    <div className="flex gap-2 ml-2">
+                       <button
+                         onClick={async () => {
+                           try {
+                             await updateDoc(doc(db, 'orders', order.id), { status: 'completed' });
+                             setOrders(orders.map(o => o.id === order.id ? { ...o, status: 'completed' } : o));
+                           } catch (e) { console.error(e); alert('Failed to update status'); }
+                         }}
+                         className="px-3 py-1 text-xs font-medium bg-green-50 text-green-700 hover:bg-green-100 rounded-lg transition-colors border border-green-200"
+                       >
+                         Complete
+                       </button>
+                       <button
+                         onClick={async () => {
+                           if(window.confirm('Are you sure you want to cancel this order?')) {
+                             try {
+                               await updateDoc(doc(db, 'orders', order.id), { status: 'cancelled' });
+                               setOrders(orders.map(o => o.id === order.id ? { ...o, status: 'cancelled' } : o));
+                             } catch (e) { console.error(e); alert('Failed to update status'); }
+                           }
+                         }}
+                         className="px-3 py-1 text-xs font-medium bg-red-50 text-red-700 hover:bg-red-100 rounded-lg transition-colors border border-red-200"
+                       >
+                         Cancel
+                       </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))}

@@ -93,7 +93,7 @@ export default function Shop() {
                 <p className="text-gray-500 mt-2">Curated selection of our finest dates</p>
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
                 {featuredProducts.map((product, index) => (
                   <ProductCard key={product.id} product={product} index={index} />
                 ))}
@@ -103,11 +103,11 @@ export default function Shop() {
 
           {/* All Products */}
           <section>
-            <div className="mb-8 border-b border-brand-sand-200 pb-4">
-              <h2 className="text-3xl text-brand-green-900">All Products</h2>
+            <div className="mb-6 sm:mb-8 border-b border-brand-sand-200 pb-4">
+              <h2 className="text-2xl sm:text-3xl text-brand-green-900">All Products</h2>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
               {products.map((product, index) => (
                 <ProductCard key={product.id} product={product} index={index} />
               ))}
