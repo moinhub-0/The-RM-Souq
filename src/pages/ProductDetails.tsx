@@ -119,7 +119,7 @@ export default function ProductDetails() {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 bg-white rounded-3xl p-6 sm:p-12 shadow-sm border border-brand-sand-100">
         <div className="relative aspect-square rounded-2xl overflow-hidden bg-brand-sand-50">
-          <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+          <img src={product.imageUrl || undefined} alt={product.name} className="w-full h-full object-cover" />
         </div>
         
         <div className="space-y-8 flex flex-col justify-center">
@@ -169,6 +169,31 @@ export default function ProductDetails() {
               <p className="text-sm text-gray-600 mt-1 leading-relaxed">Want to send this to a loved one? Add to cart and select the <strong>gift option</strong> at checkout for elegant packaging.</p>
             </div>
           </div>
+
+          {product.name.toLowerCase().includes('talbina') && (
+            <div className="bg-brand-green-50 border border-brand-green-200 rounded-xl p-6 space-y-4">
+              <div>
+                <h3 className="font-serif font-semibold text-brand-green-900 text-lg mb-2">Prophetic Superfood Health Benefits</h3>
+                <ul className="list-disc list-inside text-sm text-brand-green-800 space-y-1">
+                  <li><strong>Boosts energy</strong> & stamina throughout the day</li>
+                  <li><strong>Aids digestion</strong> & soothes the stomach</li>
+                  <li><strong>Reduces anxiety</strong> & stress to calm the mind</li>
+                  <li><strong>High in fiber</strong> & essential minerals</li>
+                </ul>
+              </div>
+              <div className="pt-4 border-t border-brand-green-200/60">
+                <h3 className="font-serif font-semibold text-brand-green-900 text-lg mb-2">3-Step Easy Recipe Guide</h3>
+                <ol className="list-decimal list-inside text-sm text-brand-green-800 space-y-2">
+                  <li><strong>Mix:</strong> Stir 2-3 tablespoons with a glass of milk or water.</li>
+                  <li><strong>Cook:</strong> Simmer on low heat for 5-7 minutes, stirring continuously until thickened.</li>
+                  <li><strong>Sweeten:</strong> Add pure honey or chopped dates to match your taste.</li>
+                </ol>
+              </div>
+              <div className="pt-2 text-[10px] text-brand-green-700/60 font-medium">
+                Keywords: Best Talbina in India, Buy Ruhani Talbina Online, Prophetic Medicine Food
+              </div>
+            </div>
+          )}
 
           <button 
             onClick={() => addToCart(product)}

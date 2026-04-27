@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, getDocs, doc, updateDoc, deleteDoc, addDoc } from 'firebase/firestore';
+import { collection, query, getDocs, doc, updateDoc, deleteDoc, addDoc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useProducts, Product } from '../contexts/ProductContext';
-import { LayoutDashboard, Plus, Trash2, Edit } from 'lucide-react';
+import { LayoutDashboard, Plus, Trash2, Edit, Save } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function AdminDashboard() {
@@ -23,6 +23,21 @@ export default function AdminDashboard() {
   // Edit Product State
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+
+  // Pages Editing State
+  const [aboutConfig, setAboutConfig] = useState({
+    visionText: "A modern digital marketplace born from a distinct vision: bringing high-quality, authentic products like Ruhani Talbina and premium dates to customers across India. We merge seamless technology with reliable service to deliver an exceptional e-commerce experience.",
+    founderName: "Moinuddin Hasan",
+    founderRole: "The Founder",
+    founderBio1: "Moinuddin is the technical visionary driving our platform. Having recently completed his 10th grade, he flawlessly balances his college studies with sharp business development skills.",
+    founderBio2: "As a self-taught expert in website design and digital systems, he architected and built the entire RM Souq infrastructure to bridge the gap between traditional products and modern e-commerce.",
+    coFounderName: "Reyan Ansari",
+    coFounderRole: "The Co-Founder",
+    coFounderBio1: "Reyan is the strategic mind propelling the brand forward. Also a recent 10th-grade graduate, he masterfully balances his academic pursuits with remarkable business acumen.",
+    coFounderBio2: "He specializes in customer relationship management (CRM) and crafting long-term business growth strategies, ensuring every customer feels valued and heard.",
+    equationTitle: "Reyan + Moin = The RM Souq",
+    equationText: "Our partnership is the perfect synthesis. By combining cutting-edge technical architecture with visionary business strategy, we created a platform designed to serve you better."
+  });
 
   useEffect(() => {
     // Check if user is admin
@@ -45,6 +60,11 @@ export default function AdminDashboard() {
       const usersSnap = await getDocs(collection(db, 'users'));
       const fetchedUsers = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       setCustomers(fetchedUsers);
+
+      const aboutSnap = await getDoc(doc(db, 'site_settings', 'about_page'));
+      if (aboutSnap.exists()) {
+        setAboutConfig(aboutSnap.data() as any);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -109,6 +129,17 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleSaveAboutConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await setDoc(doc(db, 'site_settings', 'about_page'), aboutConfig);
+      alert('About Page content updated successfully!');
+    } catch (error) {
+      console.error(error);
+      alert('Failed to save content');
+    }
+  };
+
   const handleDeleteProduct = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
@@ -133,7 +164,87 @@ export default function AdminDashboard() {
         <button onClick={() => setActiveTab('products')} className={`px-4 py-2 font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'products' ? 'border-brand-gold-500 text-brand-green-900' : 'border-transparent text-gray-500 hover:text-brand-green-700'}`}>Manage Products</button>
         <button onClick={() => setActiveTab('customers')} className={`px-4 py-2 font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'customers' ? 'border-brand-gold-500 text-brand-green-900' : 'border-transparent text-gray-500 hover:text-brand-green-700'}`}>Customers</button>
         <button onClick={() => setActiveTab('orders')} className={`px-4 py-2 font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'orders' ? 'border-brand-gold-500 text-brand-green-900' : 'border-transparent text-gray-500 hover:text-brand-green-700'}`}>Recent Orders</button>
+        <button onClick={() => setActiveTab('pages')} className={`px-4 py-2 font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'pages' ? 'border-brand-gold-500 text-brand-green-900' : 'border-transparent text-gray-500 hover:text-brand-green-700'}`}>Edit About Us</button>
       </div>
+
+      {activeTab === 'pages' && (
+        <div className="bg-white border rounded-2xl p-6 md:p-8 max-w-4xl shadow-sm">
+          <h2 className="text-2xl font-serif text-brand-green-900 mb-6 flex items-center gap-2">
+            <Edit className="text-brand-gold-500" size={24} /> Edit About Us Page
+          </h2>
+          <form onSubmit={handleSaveAboutConfig} className="space-y-8">
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Vision Section</h3>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-600">Vision Text</label>
+                <textarea rows={4} value={aboutConfig.visionText} onChange={e => setAboutConfig({...aboutConfig, visionText: e.target.value})} className="w-full p-3 border rounded-xl" />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-gray-800 border-b pb-2">The Founder</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-600">Name</label>
+                  <input type="text" value={aboutConfig.founderName} onChange={e => setAboutConfig({...aboutConfig, founderName: e.target.value})} className="w-full p-3 border rounded-xl" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-600">Role Tag</label>
+                  <input type="text" value={aboutConfig.founderRole} onChange={e => setAboutConfig({...aboutConfig, founderRole: e.target.value})} className="w-full p-3 border rounded-xl" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-600">Bio Paragraph 1</label>
+                <textarea rows={3} value={aboutConfig.founderBio1} onChange={e => setAboutConfig({...aboutConfig, founderBio1: e.target.value})} className="w-full p-3 border rounded-xl" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-600">Bio Paragraph 2</label>
+                <textarea rows={3} value={aboutConfig.founderBio2} onChange={e => setAboutConfig({...aboutConfig, founderBio2: e.target.value})} className="w-full p-3 border rounded-xl" />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-gray-800 border-b pb-2">The Co-Founder</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-600">Name</label>
+                  <input type="text" value={aboutConfig.coFounderName} onChange={e => setAboutConfig({...aboutConfig, coFounderName: e.target.value})} className="w-full p-3 border rounded-xl" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-600">Role Tag</label>
+                  <input type="text" value={aboutConfig.coFounderRole} onChange={e => setAboutConfig({...aboutConfig, coFounderRole: e.target.value})} className="w-full p-3 border rounded-xl" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-600">Bio Paragraph 1</label>
+                <textarea rows={3} value={aboutConfig.coFounderBio1} onChange={e => setAboutConfig({...aboutConfig, coFounderBio1: e.target.value})} className="w-full p-3 border rounded-xl" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-600">Bio Paragraph 2</label>
+                <textarea rows={3} value={aboutConfig.coFounderBio2} onChange={e => setAboutConfig({...aboutConfig, coFounderBio2: e.target.value})} className="w-full p-3 border rounded-xl" />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-gray-800 border-b pb-2">The Equation</h3>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-600">Title</label>
+                <input type="text" value={aboutConfig.equationTitle} onChange={e => setAboutConfig({...aboutConfig, equationTitle: e.target.value})} className="w-full p-3 border rounded-xl" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-600">Text</label>
+                <textarea rows={3} value={aboutConfig.equationText} onChange={e => setAboutConfig({...aboutConfig, equationText: e.target.value})} className="w-full p-3 border rounded-xl" />
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4">
+              <button type="submit" className="flex items-center gap-2 px-6 py-3 bg-brand-green-900 text-white rounded-xl shadow hover:bg-brand-green-800 transition-colors font-medium">
+                <Save size={20} /> Save Setting
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {activeTab === 'analytics' && (
         <div className="space-y-8">
@@ -281,9 +392,9 @@ export default function AdminDashboard() {
                          }} 
                          className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-brand-sand-100 file:text-brand-green-900 hover:file:bg-brand-sand-200" 
                       />
-                      {editingProduct.imageUrl && (
-                        <img src={editingProduct.imageUrl} alt="Preview" className="mt-2 h-16 w-16 object-cover rounded-xl border border-brand-sand-200" />
-                      )}
+                      {editingProduct.imageUrl ? (
+                        <img src={editingProduct.imageUrl || undefined} alt="Preview" className="mt-2 h-16 w-16 object-cover rounded-xl border border-brand-sand-200" />
+                      ) : null}
                     </div>
 
                   <div className="flex items-center gap-2 mt-4">
@@ -302,7 +413,7 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {products.map(product => (
               <div key={product.id} className="bg-white border rounded-2xl p-4 flex gap-4 pr-12 relative overflow-hidden group">
-                <img src={product.imageUrl} className="w-20 h-20 rounded-xl object-cover" />
+                <img src={product.imageUrl || undefined} className="w-20 h-20 rounded-xl object-cover" />
                 <div>
                   <h4 className="font-medium text-brand-green-900">{product.name}</h4>
                   <p className="text-brand-gold-600 font-medium text-sm mt-1">₹{product.price}</p>

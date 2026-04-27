@@ -18,11 +18,61 @@ export default function Checkout() {
     pincode: '',
     city: '',
     state: '',
+    district: '',
     fullAddress: ''
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGift, setIsGift] = useState(false);
+  const [pincodeError, setPincodeError] = useState('');
+  const [isValidatingPincode, setIsValidatingPincode] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const validatePincode = async () => {
+      if (!formData.pincode) {
+        setPincodeError('');
+        return;
+      }
+      
+      const pin = formData.pincode.replace(/\s/g, '');
+      if (pin.length !== 6 || !/^\d{6}$/.test(pin)) {
+        if (pin.length > 0) setPincodeError('Pincode must be 6 digits');
+        return;
+      }
+
+      setIsValidatingPincode(true);
+      setPincodeError('');
+      
+      try {
+        const response = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
+        const data = await response.json();
+        
+        if (active) {
+          if (data && data[0] && data[0].Status === 'Success') {
+            const postOffice = data[0].PostOffice[0];
+            setFormData(prev => ({
+              ...prev,
+              district: postOffice.District,
+              state: postOffice.State
+            }));
+          } else {
+            setPincodeError('Invalid Pincode for India');
+          }
+        }
+      } catch (error) {
+        if (active) setPincodeError('Error validating pincode');
+      } finally {
+        if (active) setIsValidatingPincode(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(validatePincode, 800);
+    return () => {
+      active = false;
+      clearTimeout(debounceTimer);
+    };
+  }, [formData.pincode]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -38,6 +88,7 @@ export default function Checkout() {
         email: profile.email || '',
         pincode: profile.pincode || '',
         city: profile.city || '',
+        district: profile.district || '',
         state: profile.state || '',
         fullAddress: profile.fullAddress || '',
       });
@@ -102,7 +153,7 @@ Email: ${formData.email}
 
 *Shipping Address:*
 ${formData.fullAddress}
-${formData.city}, ${formData.state}
+${formData.city}, ${formData.district ? formData.district + ', ' : ''}${formData.state}
 Pincode: ${formData.pincode}
 
 Please confirm my order and share available payment methods.`;
@@ -167,10 +218,14 @@ Please confirm my order and share available payment methods.`;
                 <textarea required name="fullAddress" value={formData.fullAddress} onChange={handleInputChange} rows={3} className="w-full p-3 bg-white border border-brand-sand-200 rounded-xl focus:ring-2 focus:ring-brand-gold-400 outline-none resize-none" placeholder="123 Halal Market Road..." />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
                   <input required name="city" value={formData.city} onChange={handleInputChange} type="text" className="w-full p-3 bg-white border border-brand-sand-200 rounded-xl focus:ring-2 focus:ring-brand-gold-400 outline-none" placeholder="Mumbai" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">District</label>
+                  <input required name="district" value={formData.district} onChange={handleInputChange} type="text" className="w-full p-3 bg-white border border-brand-sand-200 rounded-xl focus:ring-2 focus:ring-brand-gold-400 outline-none" placeholder="Mumbai Suburban" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
@@ -180,7 +235,11 @@ Please confirm my order and share available payment methods.`;
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Pincode</label>
-                <input required name="pincode" value={formData.pincode} onChange={handleInputChange} type="text" className="w-full p-3 bg-white border border-brand-sand-200 rounded-xl focus:ring-2 focus:ring-brand-gold-400 outline-none w-1/2" placeholder="400001" />
+                <div className="relative w-full sm:w-1/2">
+                  <input required name="pincode" value={formData.pincode} onChange={handleInputChange} type="text" maxLength={6} className={`w-full p-3 bg-white border ${pincodeError ? 'border-red-500' : 'border-brand-sand-200'} rounded-xl focus:ring-2 focus:ring-brand-gold-400 outline-none`} placeholder="400001" />
+                </div>
+                {isValidatingPincode && <p className="text-xs text-blue-600 mt-1">Validating pincode...</p>}
+                {pincodeError && <p className="text-xs text-red-500 mt-1">{pincodeError}</p>}
               </div>
             </div>
           </form>
@@ -196,7 +255,7 @@ Please confirm my order and share available payment methods.`;
             <div className="space-y-4 mb-6">
               {items.map(item => (
                 <div key={item.id} className="flex items-center gap-4">
-                  <img src={item.imageUrl} alt={item.name} className="w-16 h-16 rounded-lg object-cover" />
+                  <img src={item.imageUrl || undefined} alt={item.name} className="w-16 h-16 rounded-lg object-cover" />
                   <div className="flex-1">
                     <h4 className="text-sm font-medium text-brand-green-900">{item.name}</h4>
                     <p className="text-xs text-gray-500">Qty: {item.quantity}</p>

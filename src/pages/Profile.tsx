@@ -87,7 +87,7 @@ export default function Profile() {
               <div className="bg-brand-sand-50 p-6 rounded-2xl relative">
                 <p className="font-medium text-gray-900 mb-1">{profile.name}</p>
                 <p className="text-gray-600">{profile.fullAddress}</p>
-                <p className="text-gray-600">{profile.city}, {profile.state} - {profile.pincode}</p>
+                <p className="text-gray-600">{profile.city}, {profile.district ? profile.district + ' - ' : ''}{profile.state} - {profile.pincode}</p>
                 <p className="text-gray-600 mt-2">Phone: {profile.phone}</p>
                 <p className="text-sm text-brand-green-700 mt-4 italic">Your address is automatically updated when you checkout.</p>
               </div>
@@ -108,7 +108,7 @@ export default function Profile() {
               <div className="space-y-4">
                 {wishlistProducts.map(product => (
                   <div key={product.id} className="flex gap-4 p-4 rounded-2xl border border-brand-sand-200 bg-white">
-                    <img src={product.imageUrl} alt={product.name} className="w-20 h-20 object-cover rounded-xl bg-brand-sand-100" />
+                    <img src={product.imageUrl || undefined} alt={product.name} className="w-20 h-20 object-cover rounded-xl bg-brand-sand-100" />
                     <div className="flex-1 flex flex-col justify-between">
                       <div>
                         <Link to={`/product/${product.id}`} className="font-medium text-brand-green-900 hover:text-brand-green-700 transition-colors">

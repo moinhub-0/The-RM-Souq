@@ -29,7 +29,7 @@ export default function Cart() {
         <div className="md:col-span-2 space-y-6">
           {items.map(item => (
             <div key={item.id} className="flex gap-4 bg-white p-4 rounded-2xl shadow-sm border border-brand-sand-100">
-              <img src={item.imageUrl} alt={item.name} className="w-24 h-24 object-cover rounded-xl" />
+              <img src={item.imageUrl || undefined} alt={item.name} className="w-24 h-24 object-cover rounded-xl" />
               <div className="flex-1 flex flex-col justify-between">
                 <div>
                   <h3 className="text-lg font-medium text-brand-green-900">{item.name}</h3>

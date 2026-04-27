@@ -24,7 +24,7 @@ const ProductCard: React.FC<{
       
       <div className="aspect-square overflow-hidden relative bg-brand-sand-100">
         <img 
-          src={product.imageUrl} 
+          src={product.imageUrl || undefined} 
           alt={product.name} 
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
@@ -86,8 +86,8 @@ export default function Shop() {
         <div className="absolute inset-0 opacity-10 bg-[url('https://images.unsplash.com/photo-1549673967-df509cacee8f?auto=format&fit=crop&w=1200&q=80')] bg-cover bg-center" />
         <div className="relative z-10 flex-1 space-y-4 text-center md:text-left">
           <h1 className="text-3xl sm:text-5xl text-brand-gold-400 leading-tight font-serif">Authentic Sunnah Provisions</h1>
-          <p className="text-base sm:text-lg text-brand-sand-100 opacity-90 max-w-xl">
-            Premium selection of carefully sourced dates and natural products, honoring tradition and purity.
+          <p className="text-base sm:text-lg text-brand-sand-100 opacity-90 max-w-xl leading-relaxed">
+            Embrace a lifestyle of purity and wellness. Discover our curated collection of authentic Sunnah superfoods and natural remedies, carefully sourced to nourish your body and uplift your spirit.
           </p>
         </div>
         

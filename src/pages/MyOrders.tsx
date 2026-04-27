@@ -14,6 +14,7 @@ interface Order {
   shippingDetails: {
     fullAddress: string;
     city: string;
+    district?: string;
     state: string;
     pincode: string;
   };
@@ -114,7 +115,7 @@ export default function MyOrders() {
                   <h3 className="font-medium text-brand-green-900 text-sm uppercase tracking-wider">Items</h3>
                   {order.items.map((item, index) => (
                     <div key={index} className="flex items-center gap-4">
-                      <img src={item.imageUrl} alt={item.name} className="w-12 h-12 rounded-lg object-cover bg-brand-sand-100" />
+                      <img src={item.imageUrl || undefined} alt={item.name} className="w-12 h-12 rounded-lg object-cover bg-brand-sand-100" />
                       <div className="flex-1">
                         <p className="text-sm font-medium text-gray-800">{item.name}</p>
                         <p className="text-xs text-gray-500">Qty: {item.quantity} × ₹{item.price}</p>
@@ -128,7 +129,7 @@ export default function MyOrders() {
                   </h3>
                   <div className="text-sm text-gray-600 bg-brand-sand-50 p-4 rounded-xl">
                     <p>{order.shippingDetails?.fullAddress}</p>
-                    <p>{order.shippingDetails?.city}, {order.shippingDetails?.state}</p>
+                    <p>{order.shippingDetails?.city}, {order.shippingDetails?.district ? order.shippingDetails?.district + ', ' : ''}{order.shippingDetails?.state}</p>
                     <p>Pincode: {order.shippingDetails?.pincode}</p>
                   </div>
                 </div>
