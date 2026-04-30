@@ -7,6 +7,8 @@ import { Heart, Star, ArrowLeft } from 'lucide-react';
 import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { motion } from 'motion/react';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface Review {
   id: string;
@@ -30,6 +32,7 @@ export default function ProductDetails() {
   const [reviewText, setReviewText] = useState('');
   const [rating, setRating] = useState(5);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeImage, setActiveImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!product) {
@@ -112,17 +115,53 @@ export default function ProductDetails() {
     : '0';
 
   return (
-    <div className="max-w-6xl mx-auto py-8">
+    <motion.div 
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="max-w-6xl mx-auto py-8"
+    >
       <Link to="/" className="inline-flex items-center gap-2 text-brand-green-700 hover:text-brand-green-900 mb-8 transition-colors">
         <ArrowLeft size={20} /> Back to Shop
       </Link>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 bg-white rounded-3xl p-6 sm:p-12 shadow-sm border border-brand-sand-100">
-        <div className="relative aspect-square rounded-2xl overflow-hidden bg-brand-sand-50">
-          <img src={product.imageUrl || undefined} alt={product.name} className="w-full h-full object-cover" />
-        </div>
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2, duration: 0.6 }}
+          className="space-y-4"
+        >
+          <div className="relative aspect-square rounded-2xl overflow-hidden bg-brand-sand-50">
+            <img src={activeImage || product.imageUrl || undefined} alt={product.name} className="w-full h-full object-cover" />
+          </div>
+          {product.additionalImages && product.additionalImages.length > 0 && (
+            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+              <button 
+                onClick={() => setActiveImage(product.imageUrl)}
+                className={`flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 transition-colors ${(!activeImage || activeImage === product.imageUrl) ? 'border-brand-green-900' : 'border-transparent'}`}
+              >
+                <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+              </button>
+              {product.additionalImages.map((img, idx) => (
+                <button 
+                  key={idx}
+                  onClick={() => setActiveImage(img)}
+                  className={`flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 transition-colors ${activeImage === img ? 'border-brand-green-900' : 'border-transparent'}`}
+                >
+                  <img src={img} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+        </motion.div>
         
-        <div className="space-y-8 flex flex-col justify-center">
+        <motion.div 
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.4, duration: 0.6 }}
+          className="space-y-8 flex flex-col justify-center"
+        >
           <div>
             <div className="flex justify-between items-start">
               <div>
@@ -158,6 +197,14 @@ export default function ProductDetails() {
             <p className="text-lg text-gray-600 leading-relaxed">
               {product.description}
             </p>
+
+            {product.descriptionImages && product.descriptionImages.length > 0 && (
+              <div className="space-y-4 pt-4">
+                {product.descriptionImages.map((img, idx) => (
+                  <img key={idx} src={img} alt={`Description ${idx + 1}`} className="w-full rounded-2xl shadow-sm border border-brand-sand-100" />
+                ))}
+              </div>
+            )}
           </div>
           
           <div className="bg-brand-sand-50 border border-brand-sand-200 rounded-xl p-4 flex items-start gap-4">
@@ -170,7 +217,21 @@ export default function ProductDetails() {
             </div>
           </div>
 
-          {product.name.toLowerCase().includes('talbina') && (
+          {(product.highlightHeading || product.highlightContent) && (
+            <div className="bg-brand-green-50 border border-brand-green-200 rounded-xl p-6 space-y-4">
+              {product.highlightHeading && (
+                <h3 className="font-serif font-semibold text-brand-green-900 text-lg mb-2">{product.highlightHeading}</h3>
+              )}
+              {product.highlightContent && (
+                <div className="prose prose-sm prose-green max-w-none text-brand-green-800">
+                  <Markdown remarkPlugins={[remarkGfm]}>{product.highlightContent}</Markdown>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Legacy hardcoded fallback for Talbina until data is migrated */}
+          {(!product.highlightHeading && !product.highlightContent) && product.name.toLowerCase().includes('talbina') && (
             <div className="bg-brand-green-50 border border-brand-green-200 rounded-xl p-6 space-y-4">
               <div>
                 <h3 className="font-serif font-semibold text-brand-green-900 text-lg mb-2">Prophetic Superfood Health Benefits</h3>
@@ -201,11 +262,17 @@ export default function ProductDetails() {
           >
             Add to Cart
           </button>
-        </div>
+        </motion.div>
       </div>
 
       {/* Reviews Section */}
-      <div className="mt-16">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-50px" }}
+        transition={{ duration: 0.6 }}
+        className="mt-16"
+      >
         <h2 className="text-3xl mb-8 border-b border-brand-sand-200 pb-4">Customer Reviews</h2>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
@@ -291,7 +358,7 @@ export default function ProductDetails() {
             )}
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { Minus, Plus, Trash2, ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function Cart() {
   const { items, updateQuantity, removeFromCart, totalPrice, totalItems } = useCart();
@@ -8,7 +9,12 @@ export default function Cart() {
 
   if (items.length === 0) {
     return (
-      <div className="text-center py-24 space-y-6">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="text-center py-24 space-y-6"
+      >
         <div className="w-24 h-24 bg-brand-sand-200 rounded-full flex items-center justify-center mx-auto mb-6">
           <ShoppingBagBigIcon className="w-10 h-10 text-brand-green-800/50" />
         </div>
@@ -17,18 +23,32 @@ export default function Cart() {
         <Link to="/" className="inline-block bg-brand-green-900 text-brand-gold-400 px-8 py-3 rounded-xl font-medium hover:bg-brand-green-800 transition-colors">
           Browse Shop
         </Link>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-8">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="max-w-4xl mx-auto py-8"
+    >
       <h1 className="text-3xl mb-8 border-b border-brand-sand-200 pb-4">Shopping Cart ({totalItems} items)</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="md:col-span-2 space-y-6">
-          {items.map(item => (
-            <div key={item.id} className="flex gap-4 bg-white p-4 rounded-2xl shadow-sm border border-brand-sand-100">
+          <AnimatePresence>
+            {items.map(item => (
+              <motion.div 
+                layout
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9, x: -20 }}
+                transition={{ duration: 0.3 }}
+                key={item.id} 
+                className="flex gap-4 bg-white p-4 rounded-2xl shadow-sm border border-brand-sand-100"
+              >
               <img src={item.imageUrl || undefined} alt={item.name} className="w-24 h-24 object-cover rounded-xl" />
               <div className="flex-1 flex flex-col justify-between">
                 <div>
@@ -46,11 +66,17 @@ export default function Cart() {
                   </button>
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
+          </AnimatePresence>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-brand-sand-100 h-fit sticky top-24">
+        <motion.div 
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="bg-white p-6 rounded-2xl shadow-sm border border-brand-sand-100 h-fit sticky top-24"
+        >
           <h3 className="text-xl mb-4 font-semibold">Order Summary</h3>
           <div className="space-y-3 text-sm text-gray-600 mb-6 border-b border-brand-sand-200 pb-6">
             <div className="flex justify-between">
@@ -73,9 +99,9 @@ export default function Cart() {
             Proceed to Checkout
             <ArrowRight size={18} />
           </button>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

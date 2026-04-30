@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { collection, onSnapshot, getDocs, writeBatch, doc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 
 export interface Product {
   id: string;
@@ -12,6 +12,10 @@ export interface Product {
   currency: string;
   isFeatured?: boolean;
   weight?: string;
+  highlightHeading?: string;
+  highlightContent?: string;
+  additionalImages?: string[];
+  descriptionImages?: string[];
 }
 
 export const INITIAL_SHOP_PRODUCTS: Product[] = [
@@ -78,7 +82,7 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
       setProducts(fetched);
       setLoadingProducts(false);
     }, (error) => {
-      console.error('Error fetching products:', error);
+      handleFirestoreError(error, OperationType.GET, 'products');
       setLoadingProducts(false);
     });
 

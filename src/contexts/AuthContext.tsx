@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, db } from '../lib/firebase';
+import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
 
 export interface UserProfile {
   name: string;
@@ -9,6 +9,7 @@ export interface UserProfile {
   phone: string;
   pincode: string;
   city: string;
+  district?: string;
   state: string;
   fullAddress: string;
   wishlist?: string[];
@@ -37,23 +38,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (currentUser) {
         // Fetch or create profile
         const docRef = doc(db, 'users', currentUser.uid);
-        const docSnap = await getDoc(docRef);
-        
-        if (docSnap.exists()) {
-          setProfile(docSnap.data() as UserProfile);
-        } else {
-          // Initialize empty profile
-          const defaultProfile: UserProfile = {
-            name: currentUser.displayName || '',
-            email: currentUser.email || '',
-            phone: '',
-            pincode: '',
-            city: '',
-            state: '',
-            fullAddress: '',
-            wishlist: []
-          };
-          setProfile(defaultProfile);
+        try {
+          const docSnap = await getDoc(docRef);
+          
+          if (docSnap.exists()) {
+            setProfile(docSnap.data() as UserProfile);
+          } else {
+            // Initialize empty profile
+            const defaultProfile: UserProfile = {
+              name: currentUser.displayName || '',
+              email: currentUser.email || '',
+              phone: '',
+              pincode: '',
+              city: '',
+              state: '',
+              fullAddress: '',
+              wishlist: []
+            };
+            setProfile(defaultProfile);
+          }
+        } catch (error) {
+          handleFirestoreError(error, OperationType.GET, `users/${currentUser.uid}`);
         }
       } else {
         setProfile(null);
@@ -73,8 +78,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateProfile = async (data: UserProfile) => {
     if (!user) return;
-    await setDoc(doc(db, 'users', user.uid), data, { merge: true });
-    setProfile(data);
+    try {
+      await setDoc(doc(db, 'users', user.uid), data, { merge: true });
+      setProfile(data);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `users/${user.uid}`);
+    }
   };
 
   const toggleWishlist = async (productId: string) => {
@@ -91,8 +100,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     
     const updatedProfile = { ...profile, wishlist: newWishlist };
-    await setDoc(doc(db, 'users', user.uid), updatedProfile, { merge: true });
-    setProfile(updatedProfile);
+    try {
+      await setDoc(doc(db, 'users', user.uid), updatedProfile, { merge: true });
+      setProfile(updatedProfile);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `users/${user.uid}`);
+    }
   };
 
   return (

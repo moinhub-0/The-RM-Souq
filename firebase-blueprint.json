@@ -1,0 +1,58 @@
+{
+  "entities": {
+    "product": {
+      "title": "Product",
+      "description": "Store items for sale",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "mainImage": { "type": "string" },
+        "sideImages": { "type": "array", "items": { "type": "string" } },
+        "inStock": { "type": "boolean" },
+        "whatsappLink": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "price", "category", "inStock"]
+    },
+    "order": {
+      "title": "Order",
+      "description": "Customer purchase records",
+      "type": "object",
+      "properties": {
+        "userName": { "type": "string" },
+        "phone": { "type": "string" },
+        "totalPrice": { "type": "number" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "setting": {
+      "title": "Business Setting",
+      "description": "Global business configuration",
+      "type": "object",
+      "properties": {
+        "phoneNumber": { "type": "string" },
+        "email": { "type": "string" },
+        "address": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "product",
+      "description": "Product collection"
+    },
+    "/orders/{orderId}": {
+      "schema": "order",
+      "description": "Orders collection"
+    },
+    "/settings/contact": {
+      "schema": "setting",
+      "description": "Global contact details"
+    }
+  }
+}

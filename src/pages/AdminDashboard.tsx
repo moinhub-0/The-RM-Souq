@@ -2,12 +2,58 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, getDocs, doc, updateDoc, deleteDoc, addDoc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { useProducts, Product } from '../contexts/ProductContext';
-import { LayoutDashboard, Plus, Trash2, Edit, Save } from 'lucide-react';
+import { useSettings } from '../context/SettingsContext';
+import { LayoutDashboard, Plus, Trash2, Edit, Save, Settings, Phone, Mail, MapPin, Facebook, Instagram, Youtube } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
+const processFiles = (files: FileList | null, callback: (urls: string[]) => void, maxWidth = 800, maxHeight = 800) => {
+  if (!files || files.length === 0) return;
+  const processedUrls: string[] = [];
+  let processedCount = 0;
+
+  Array.from(files).forEach((file) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round(height * (maxWidth / width));
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round(width * (maxHeight / height));
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        processedUrls.push(canvas.toDataURL('image/jpeg', 0.8));
+        processedCount++;
+        
+        if (processedCount === files.length) {
+          callback(processedUrls);
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
 export default function AdminDashboard() {
+  const { settings, updateSettings } = useSettings();
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { products, seedInitialProducts } = useProducts();
@@ -17,8 +63,26 @@ export default function AdminDashboard() {
   // Analytics State
   const [orders, setOrders] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
+  const [visits, setVisits] = useState<any[]>([]);
+  const [coupons, setCoupons] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(true);
-  const [activeChartBox, setActiveChartBox] = useState<'orders' | 'revenue' | 'gift' | 'regular'>('orders');
+  const [activeChartBox, setActiveChartBox] = useState<'orders' | 'revenue' | 'gift' | 'regular' | 'totalVisits' | 'newVisits'>('orders');
+
+  // Business Settings State
+  const [editSettings, setEditSettings] = useState(settings);
+
+  useEffect(() => {
+    setEditSettings(settings);
+  }, [settings]);
+
+
+  const [newCoupon, setNewCoupon] = useState({
+    code: '',
+    discount: 0,
+    type: 'percentage' as 'percentage' | 'fixed',
+    minPurchase: 0,
+    usageLimit: 0
+  });
 
   // Edit Product State
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -39,6 +103,79 @@ export default function AdminDashboard() {
     equationText: "Our partnership is the perfect synthesis. By combining cutting-edge technical architecture with visionary business strategy, we created a platform designed to serve you better."
   });
 
+  const [legalPagesConfig, setLegalPagesConfig] = useState({
+    privacy: `At The RM Souq, accessible from the-rm-souq.netlify.app, one of our main priorities is the privacy of our visitors. This Privacy Policy document contains types of information that is collected and recorded by The RM Souq and how we use it.
+
+## 1. Information We Collect
+When you visit our store or make a purchase, we collect the following information to provide you with a smooth shopping experience:
+- **Personal Identifiable Information:** Name, shipping address, billing address, email address, and phone number.
+- **Order Details:** Information about the products you purchase (e.g., Ruhani Talbina, dates).
+- **Device Information:** IP address, browser type, and cookies used to improve site performance.
+
+## 2. How We Use Your Information
+We use the information we collect in various ways, including to:
+- Process, fulfill, and ship your orders via our logistics partner (Shiprocket).
+- Communicate with you regarding order updates or customer support.
+- Prevent fraudulent transactions.
+- Analyze how you use our website to improve our services and product offerings.
+
+## 3. Third-Party Sharing
+We do not sell or rent your personal data to third parties. However, we share your information with trusted service providers to run our business.
+
+## 4. Data Security
+We prioritize the security of your data. While no method of transmission over the internet is 100% secure, we use industry-standard encryption and secure hosting on Netlify to protect your personal information.
+
+## 5. Contact Us
+**Founder:** Moinuddin Hasan  
+**Phone:** +91 7853903438  
+**Email:** thermsouq@gmail.com  
+**Address:** Birmitrapur, Sundergarh, Odisha, India.`,
+    shipping: `## Order Processing
+All orders are processed within 1–2 business days after payment confirmation. Orders placed on weekends or holidays will be processed on the next working day.
+
+## Delivery Timeframe
+- **Metro Cities:** 2–4 business days from dispatch
+- **Other Locations:** 3–7 business days from dispatch
+- **Remote Areas:** 7–14 business days from dispatch
+
+## Shipping Charges
+- **Free Shipping:** On orders above ₹500 (Prepaid only)
+- **Standard Shipping:** ₹50–150 depending on location (Prepaid)
+- **COD (Cash on Delivery):** Additional ₹30–50 charges apply
+
+## Tracking Your Order
+Once your order is dispatched, you will receive an SMS with tracking number, courier details, and a tracking link to monitor real-time delivery status.`,
+    terms: `## Agreement to Terms
+By accessing the-rm-souq.netlify.app, you agree to be bound by these Terms and Conditions. These terms apply to all visitors and customers.
+
+## Product Authenticity
+As an authorized distributor of Ruhani Souq, we guarantee that all Ruhani Talbina and related products sold on our platform are 100% authentic and sourced directly from the manufacturer.
+
+## Pricing and Payments
+All prices are in INR. We reserve the right to change prices without notice. Payments are accepted via UPI (Google Pay) and other listed methods. Orders are only confirmed once payment is verified.`,
+    cancellation: `## Before Dispatch
+You can cancel your order within 12 hours of placing it or before it has been handed over to our shipping partner (Shiprocket), whichever is earlier. For cancellations made during this window, a full refund will be processed.
+
+## After Dispatch
+Once an order is dispatched, it cannot be canceled. If you refuse the delivery, the outward and inward shipping charges will be deducted from your refund.
+
+## How to Cancel
+To request a cancellation, please WhatsApp us at **+91 7853903438** or email **thermsouq@gmail.com** with your Order ID.`,
+    return: `## Food & Hygiene Policy
+Due to the nature of our products (Food/Health Supplements), we do not accept returns once the product seal is broken or the package is opened, unless the product is defective or damaged upon arrival.
+
+## Damaged or Incorrect Items
+If you receive a damaged product or the wrong item:
+1. You must inform us within 24 hours of delivery.
+2. You must provide an unboxing video clearly showing the shipping label and the damage/wrong item.
+3. Once verified, we will send a replacement at no extra cost or initiate a refund.
+
+## Non-Returnable Items
+- Items on clearance or special sale.
+- Products with broken safety seals.
+- Requests made after 48 hours of delivery.`,
+  });
+
   useEffect(() => {
     // Check if user is admin
     if (!loading) {
@@ -53,18 +190,49 @@ export default function AdminDashboard() {
   const fetchAdminData = async () => {
     setLoadingData(true);
     try {
-      const ordersSnap = await getDocs(collection(db, 'orders'));
+      const ordersSnap = await getDocs(collection(db, 'orders')).catch(e => {
+        handleFirestoreError(e, OperationType.LIST, 'orders');
+        throw e;
+      });
       const fetchedOrders = ordersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       setOrders(fetchedOrders);
 
-      const usersSnap = await getDocs(collection(db, 'users'));
+      const usersSnap = await getDocs(collection(db, 'users')).catch(e => {
+        handleFirestoreError(e, OperationType.LIST, 'users');
+        throw e;
+      });
       const fetchedUsers = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       setCustomers(fetchedUsers);
 
-      const aboutSnap = await getDoc(doc(db, 'site_settings', 'about_page'));
+      const aboutSnap = await getDoc(doc(db, 'site_settings', 'about_page')).catch(e => {
+        handleFirestoreError(e, OperationType.GET, 'site_settings/about_page');
+        throw e;
+      });
       if (aboutSnap.exists()) {
         setAboutConfig(aboutSnap.data() as any);
       }
+
+      const legalSnap = await getDoc(doc(db, 'site_settings', 'legal_pages')).catch(e => {
+        handleFirestoreError(e, OperationType.GET, 'site_settings/legal_pages');
+        throw e;
+      });
+      if (legalSnap.exists()) {
+        setLegalPagesConfig(legalSnap.data() as any);
+      }
+
+      const visitsSnap = await getDocs(collection(db, 'visits')).catch(e => {
+        handleFirestoreError(e, OperationType.LIST, 'visits');
+        throw e;
+      });
+      const fetchedVisits = visitsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setVisits(fetchedVisits);
+
+      const couponsSnap = await getDocs(collection(db, 'coupons')).catch(e => {
+        handleFirestoreError(e, OperationType.LIST, 'coupons');
+        throw e;
+      });
+      const fetchedCoupons = couponsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setCoupons(fetchedCoupons);
     } catch (e) {
       console.error(e);
     } finally {
@@ -84,6 +252,11 @@ export default function AdminDashboard() {
   const giftOrders = orders.filter(o => o.isGift);
   const regularOrders = orders.filter(o => !o.isGift);
 
+  const totalVisitsCount = visits.length;
+  const uniqueVisitorsCount = new Set(visits.map(v => v.visitorId)).size;
+  const todaysVisits = visits.filter(v => now - v.timestamp < ONE_DAY);
+  const todaysNewVisits = todaysVisits.filter(v => v.isNew).length;
+
   const chartData = useMemo(() => {
     // Generate last 7 days data
     const data = [];
@@ -93,6 +266,7 @@ export default function AdminDashboard() {
       const endOfDay = startOfDay + ONE_DAY;
       
       const dayOrders = orders.filter(o => o.createdAt >= startOfDay && o.createdAt < endOfDay);
+      const dayVisits = visits.filter(v => v.timestamp >= startOfDay && v.timestamp < endOfDay);
       
       data.push({
         date: date.toLocaleDateString('en-US', { weekday: 'short' }),
@@ -100,10 +274,12 @@ export default function AdminDashboard() {
         revenue: dayOrders.reduce((sum, o) => sum + (o.totalPrice || 0), 0),
         gift: dayOrders.filter(o => o.isGift).length,
         regular: dayOrders.filter(o => !o.isGift).length,
+        totalVisits: dayVisits.length,
+        newVisits: dayVisits.filter(v => v.isNew).length,
       });
     }
     return data;
-  }, [orders, now, ONE_DAY]);
+  }, [orders, visits, now, ONE_DAY]);
 
   if (loading || loadingData) return <div className="text-center py-20 text-gray-500">Loading admin data...</div>;
 
@@ -124,7 +300,7 @@ export default function AdminDashboard() {
       setIsAdding(false);
       alert('Product saved successfully!');
     } catch (e) {
-      console.error(e);
+      handleFirestoreError(e, isAdding ? OperationType.CREATE : OperationType.UPDATE, 'products');
       alert('Failed to save product');
     }
   };
@@ -135,8 +311,54 @@ export default function AdminDashboard() {
       await setDoc(doc(db, 'site_settings', 'about_page'), aboutConfig);
       alert('About Page content updated successfully!');
     } catch (error) {
-      console.error(error);
+      handleFirestoreError(error, OperationType.WRITE, 'site_settings/about_page');
       alert('Failed to save content');
+    }
+  };
+
+  const handleSaveLegalConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await setDoc(doc(db, 'site_settings', 'legal_pages'), legalPagesConfig);
+      alert('Legal Pages content updated successfully!');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'site_settings/legal_pages');
+      alert('Failed to save content');
+    }
+  };
+
+  const handleAddCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (!newCoupon.code || newCoupon.discount <= 0) {
+        alert('Please provide a valid code and discount');
+        return;
+      }
+      await addDoc(collection(db, 'coupons'), {
+        ...newCoupon,
+        code: newCoupon.code.toUpperCase().trim(),
+        usageCount: 0,
+        createdAt: Date.now()
+      });
+      setNewCoupon({ code: '', discount: 0, type: 'percentage', minPurchase: 0, usageLimit: 0 });
+      alert('Coupon added successfully!');
+      fetchAdminData();
+    } catch (e) {
+      handleFirestoreError(e, OperationType.CREATE, 'coupons');
+      alert('Failed to add coupon');
+    }
+  };
+
+  const handleDeleteCoupon = async (id: string) => {
+    if (window.confirm('Delete this discount code?')) {
+      try {
+        await deleteDoc(doc(db, 'coupons', id));
+        alert('Coupon deleted!');
+        fetchAdminData();
+      } catch (e) {
+        handleFirestoreError(e, OperationType.DELETE, `coupons/${id}`);
+        alert('Failed to delete coupon');
+      }
     }
   };
 
@@ -146,7 +368,7 @@ export default function AdminDashboard() {
         await deleteDoc(doc(db, 'products', id));
         alert('Product deleted!');
       } catch (e) {
-        console.error(e);
+        handleFirestoreError(e, OperationType.DELETE, `products/${id}`);
         alert('Failed to delete product');
       }
     }
@@ -165,7 +387,45 @@ export default function AdminDashboard() {
         <button onClick={() => setActiveTab('customers')} className={`px-4 py-2 font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'customers' ? 'border-brand-gold-500 text-brand-green-900' : 'border-transparent text-gray-500 hover:text-brand-green-700'}`}>Customers</button>
         <button onClick={() => setActiveTab('orders')} className={`px-4 py-2 font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'orders' ? 'border-brand-gold-500 text-brand-green-900' : 'border-transparent text-gray-500 hover:text-brand-green-700'}`}>Recent Orders</button>
         <button onClick={() => setActiveTab('pages')} className={`px-4 py-2 font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'pages' ? 'border-brand-gold-500 text-brand-green-900' : 'border-transparent text-gray-500 hover:text-brand-green-700'}`}>Edit About Us</button>
+        <button onClick={() => setActiveTab('legal_pages')} className={`px-4 py-2 font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'legal_pages' ? 'border-brand-gold-500 text-brand-green-900' : 'border-transparent text-gray-500 hover:text-brand-green-700'}`}>Edit Legal Pages</button>
+        <button onClick={() => setActiveTab('coupons')} className={`px-4 py-2 font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'coupons' ? 'border-brand-gold-500 text-brand-green-900' : 'border-transparent text-gray-500 hover:text-brand-green-700'}`}>Discount Codes</button>
+        <button onClick={() => setActiveTab('settings')} className={`px-4 py-2 font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'settings' ? 'border-brand-gold-500 text-brand-green-900' : 'border-transparent text-gray-500 hover:text-brand-green-700'}`}>Business Details</button>
       </div>
+
+      {activeTab === 'legal_pages' && (
+        <div className="bg-white border rounded-2xl p-6 md:p-8 max-w-4xl shadow-sm">
+          <h2 className="text-2xl font-serif text-brand-green-900 mb-6 flex items-center gap-2">
+            <Edit className="text-brand-gold-500" size={24} /> Edit Legal & Policy Pages
+          </h2>
+          <p className="text-sm text-gray-500 mb-6 font-medium">You can use Markdown to format these pages.</p>
+          <form onSubmit={handleSaveLegalConfig} className="space-y-8">
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Privacy Policy</h3>
+              <textarea rows={10} value={legalPagesConfig.privacy} onChange={e => setLegalPagesConfig({...legalPagesConfig, privacy: e.target.value})} className="w-full p-4 border rounded-xl font-mono text-sm shadow-inner" placeholder="Markdown supported..." />
+            </div>
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Shipping Policy</h3>
+              <textarea rows={10} value={legalPagesConfig.shipping} onChange={e => setLegalPagesConfig({...legalPagesConfig, shipping: e.target.value})} className="w-full p-4 border rounded-xl font-mono text-sm shadow-inner" placeholder="Markdown supported..." />
+            </div>
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Terms & Conditions</h3>
+              <textarea rows={10} value={legalPagesConfig.terms} onChange={e => setLegalPagesConfig({...legalPagesConfig, terms: e.target.value})} className="w-full p-4 border rounded-xl font-mono text-sm shadow-inner" placeholder="Markdown supported..." />
+            </div>
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Cancellation Policy</h3>
+              <textarea rows={10} value={legalPagesConfig.cancellation} onChange={e => setLegalPagesConfig({...legalPagesConfig, cancellation: e.target.value})} className="w-full p-4 border rounded-xl font-mono text-sm shadow-inner" placeholder="Markdown supported..." />
+            </div>
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Return & Refund Policy</h3>
+              <textarea rows={10} value={legalPagesConfig.return} onChange={e => setLegalPagesConfig({...legalPagesConfig, return: e.target.value})} className="w-full p-4 border rounded-xl font-mono text-sm shadow-inner" placeholder="Markdown supported..." />
+            </div>
+            
+            <button type="submit" className="w-full bg-brand-green-900 text-white font-bold py-3 rounded-xl hover:bg-brand-green-800 transition shadow-lg flex items-center justify-center gap-2">
+              <Save size={20} /> Save Legal Pages
+            </button>
+          </form>
+        </div>
+      )}
 
       {activeTab === 'pages' && (
         <div className="bg-white border rounded-2xl p-6 md:p-8 max-w-4xl shadow-sm">
@@ -246,9 +506,119 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {activeTab === 'settings' && (
+        <div className="bg-white border rounded-2xl p-6 md:p-8 max-w-2xl shadow-sm">
+          <h2 className="text-2xl font-serif text-brand-green-900 mb-6 flex items-center gap-2">
+            <Settings className="text-brand-gold-500" size={24} /> Business Contact Details
+          </h2>
+          <p className="text-sm text-gray-500 mb-8 italic">Updating these will reflect everywhere on the site (Footer, Checkout, WhatsApp links, etc.)</p>
+          
+          <div className="space-y-6">
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase mb-2">WhatsApp Number (incl. country code)</label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input 
+                  type="text" 
+                  value={editSettings.phoneNumber} 
+                  onChange={e => setEditSettings({...editSettings, phoneNumber: e.target.value})} 
+                  placeholder="917853903438"
+                  className="w-full pl-10 pr-4 py-3 bg-brand-sand-50 border border-brand-sand-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold-400"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Business Email</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input 
+                  type="email" 
+                  value={editSettings.email} 
+                  onChange={e => setEditSettings({...editSettings, email: e.target.value})} 
+                  placeholder="info@rmsouq.com"
+                  className="w-full pl-10 pr-4 py-3 bg-brand-sand-50 border border-brand-sand-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold-400"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Business Address</label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-3 text-gray-400" size={18} />
+                <textarea 
+                  rows={3}
+                  value={editSettings.address} 
+                  onChange={e => setEditSettings({...editSettings, address: e.target.value})} 
+                  placeholder="City, State, Country"
+                  className="w-full pl-10 pr-4 py-3 bg-brand-sand-50 border border-brand-sand-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold-400"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Facebook URL</label>
+                <div className="relative">
+                  <Facebook className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <input 
+                    type="url" 
+                    value={editSettings.facebook} 
+                    onChange={e => setEditSettings({...editSettings, facebook: e.target.value})} 
+                    placeholder="https://facebook.com/..."
+                    className="w-full pl-10 pr-4 py-3 bg-brand-sand-50 border border-brand-sand-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold-400"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Instagram URL</label>
+                <div className="relative">
+                  <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <input 
+                    type="url" 
+                    value={editSettings.instagram} 
+                    onChange={e => setEditSettings({...editSettings, instagram: e.target.value})} 
+                    placeholder="https://instagram.com/..."
+                    className="w-full pl-10 pr-4 py-3 bg-brand-sand-50 border border-brand-sand-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold-400"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-2">YouTube URL</label>
+                <div className="relative">
+                  <Youtube className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <input 
+                    type="url" 
+                    value={editSettings.youtube} 
+                    onChange={e => setEditSettings({...editSettings, youtube: e.target.value})} 
+                    placeholder="https://youtube.com/..."
+                    className="w-full pl-10 pr-4 py-3 bg-brand-sand-50 border border-brand-sand-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold-400"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button 
+              onClick={async () => {
+                try {
+                  await updateSettings(editSettings);
+                  alert('Business details updated successfully!');
+                } catch (e) {
+                  console.error(e);
+                  alert('Failed to update details');
+                }
+              }}
+              className="w-full bg-brand-green-900 text-white font-bold py-4 rounded-xl hover:bg-brand-green-800 transition-colors shadow-lg active:scale-95"
+            >
+              Save Changes
+            </button>
+          </div>
+        </div>
+      )}
+
       {activeTab === 'analytics' && (
         <div className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <button 
               onClick={() => setActiveChartBox('orders')}
               className={`text-left p-6 rounded-2xl shadow-sm border transition-colors ${activeChartBox === 'orders' ? 'bg-brand-green-900 border-brand-green-800 text-white' : 'bg-white border-brand-sand-200 hover:border-brand-green-300'}`}
@@ -271,6 +641,7 @@ export default function AdminDashboard() {
             >
               <h3 className={`text-sm font-medium mb-2 uppercase tracking-wider ${activeChartBox === 'gift' ? 'text-brand-gold-300' : 'text-gray-500'}`}>Gifting Orders</h3>
               <p className={`text-4xl font-serif ${activeChartBox === 'gift' ? 'text-brand-gold-400' : 'text-brand-green-900'}`}>{giftOrders.length}</p>
+              <p className="text-sm mt-2 text-gray-400 invisible">Placeholder</p>
             </button>
             <button 
               onClick={() => setActiveChartBox('regular')}
@@ -278,20 +649,45 @@ export default function AdminDashboard() {
             >
               <h3 className={`text-sm font-medium mb-2 uppercase tracking-wider ${activeChartBox === 'regular' ? 'text-brand-gold-300' : 'text-gray-500'}`}>Without Gifting</h3>
               <p className={`text-4xl font-serif ${activeChartBox === 'regular' ? 'text-brand-gold-400' : 'text-brand-green-900'}`}>{regularOrders.length}</p>
+              <p className="text-sm mt-2 text-gray-400 invisible">Placeholder</p>
+            </button>
+            <button 
+              onClick={() => setActiveChartBox('totalVisits')}
+              className={`text-left p-6 rounded-2xl shadow-sm border transition-colors ${activeChartBox === 'totalVisits' ? 'bg-brand-green-900 border-brand-green-800 text-white' : 'bg-white border-brand-sand-200 hover:border-brand-green-300'}`}
+            >
+              <h3 className={`text-sm font-medium mb-2 uppercase tracking-wider ${activeChartBox === 'totalVisits' ? 'text-brand-gold-300' : 'text-gray-500'}`}>Total Visits</h3>
+              <p className={`text-4xl font-serif ${activeChartBox === 'totalVisits' ? 'text-brand-gold-400' : 'text-brand-green-900'}`}>{totalVisitsCount}</p>
+              <p className={`text-sm mt-2 font-medium ${activeChartBox === 'totalVisits' ? 'text-brand-sand-200' : 'text-brand-green-700'}`}>Today: {todaysVisits.length}</p>
+            </button>
+            <button 
+              onClick={() => setActiveChartBox('newVisits')}
+              className={`text-left p-6 rounded-2xl shadow-sm border transition-colors ${activeChartBox === 'newVisits' ? 'bg-brand-green-900 border-brand-green-800 text-white' : 'bg-white border-brand-sand-200 hover:border-brand-green-300'}`}
+            >
+              <h3 className={`text-sm font-medium mb-2 uppercase tracking-wider ${activeChartBox === 'newVisits' ? 'text-brand-gold-300' : 'text-gray-500'}`}>New Visits</h3>
+              <p className={`text-4xl font-serif ${activeChartBox === 'newVisits' ? 'text-brand-gold-400' : 'text-brand-green-900'}`}>{uniqueVisitorsCount}</p>
+              <p className={`text-sm mt-2 font-medium ${activeChartBox === 'newVisits' ? 'text-brand-sand-200' : 'text-brand-green-700'}`}>Today: {todaysNewVisits}</p>
             </button>
           </div>
           
           <div className="bg-white border border-brand-sand-200 shadow-sm rounded-2xl p-6">
-            <h3 className="text-xl font-serif text-brand-green-900 mb-6 capitalize">{activeChartBox} (Last 7 Days)</h3>
-            <div className="h-80 w-full text-sm">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
+            <h3 className="text-xl font-serif text-brand-green-900 mb-6 capitalize">{activeChartBox.replace(/([A-Z])/g, ' $1').trim()} (Last 7 Days)</h3>
+            <div className="w-full text-sm">
+              <ResponsiveContainer width="100%" height={320}>
+                <LineChart data={chartData} key={activeChartBox}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                   <XAxis dataKey="date" stroke="#6b7280" />
-                  <YAxis stroke="#6b7280" width={40} />
+                  <YAxis 
+                    stroke="#6b7280" 
+                    width={activeChartBox === 'revenue' ? 80 : 40} 
+                    allowDecimals={false}
+                    tickFormatter={(value: any) => activeChartBox === 'revenue' ? `₹${value.toLocaleString()}` : value}
+                  />
                   <Tooltip 
                     contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb' }}
-                    formatter={(value: number) => activeChartBox === 'revenue' ? `₹${value.toLocaleString()}` : value}
+                    formatter={(value: number) => {
+                      if (activeChartBox === 'revenue') return `₹${value.toLocaleString()}`;
+                      return value;
+                    }}
                   />
                   <Line 
                     type="monotone" 
@@ -300,6 +696,7 @@ export default function AdminDashboard() {
                     strokeWidth={3}
                     dot={{ fill: '#fbbf24', strokeWidth: 2, r: 4 }}
                     activeDot={{ r: 6, fill: '#fbbf24', stroke: '#14532D' }}
+                    isAnimationActive={false}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -347,54 +744,96 @@ export default function AdminDashboard() {
                       <input type="text" placeholder="e.g. 500g, 1kg" value={editingProduct.weight || ''} onChange={e => setEditingProduct({...editingProduct, weight: e.target.value})} className="w-full p-2 border rounded-xl" />
                     </div>
                   </div>
+                  <div className="space-y-4 pt-4 border-t">
+                    <h4 className="font-semibold text-brand-green-900">Custom Highlight Section</h4>
+                    <p className="text-xs text-gray-500">Add a special highlighted section for this product (like health benefits). Supports Markdown for content.</p>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Highlight Heading</label>
+                      <input type="text" placeholder="e.g. Prophetic Superfood Health Benefits" value={editingProduct.highlightHeading || ''} onChange={e => setEditingProduct({...editingProduct, highlightHeading: e.target.value})} className="w-full p-2 border rounded-xl" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Highlight Content (Markdown)</label>
+                      <textarea placeholder="Use Markdown for lists, bold, etc.&#10;- **Boosts energy**&#10;- **Aids digestion**" value={editingProduct.highlightContent || ''} onChange={e => setEditingProduct({...editingProduct, highlightContent: e.target.value})} className="w-full p-2 border rounded-xl font-mono text-sm" rows={4} />
+                    </div>
+                  </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Product Image</label>
+                    <label className="block text-sm font-medium mb-1">Product Image (Main)</label>
                     <input 
                        type="file" 
                        accept="image/*"
                          onChange={(e) => {
-                           const file = e.target.files?.[0];
-                           if (!file) return;
-
-                           const reader = new FileReader();
-                           reader.onload = (event) => {
-                             const img = new Image();
-                             img.onload = () => {
-                               const canvas = document.createElement('canvas');
-                               const MAX_WIDTH = 800;
-                               const MAX_HEIGHT = 800;
-                               let width = img.width;
-                               let height = img.height;
-
-                               if (width > height) {
-                                 if (width > MAX_WIDTH) {
-                                   height *= Math.round(MAX_WIDTH / width);
-                                   width = MAX_WIDTH;
-                                 }
-                               } else {
-                                 if (height > MAX_HEIGHT) {
-                                   width *= Math.round(MAX_HEIGHT / height);
-                                   height = MAX_HEIGHT;
-                                 }
-                               }
-
-                               canvas.width = width;
-                               canvas.height = height;
-                               const ctx = canvas.getContext('2d');
-                               ctx?.drawImage(img, 0, 0, width, height);
-                               
-                               const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                               setEditingProduct({ ...editingProduct!, imageUrl: dataUrl });
-                             };
-                             img.src = event.target?.result as string;
-                           };
-                           reader.readAsDataURL(file);
+                           processFiles(e.target.files, (urls) => {
+                             setEditingProduct({ ...editingProduct!, imageUrl: urls[0] });
+                           });
                          }} 
                          className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-brand-sand-100 file:text-brand-green-900 hover:file:bg-brand-sand-200" 
                       />
                       {editingProduct.imageUrl ? (
-                        <img src={editingProduct.imageUrl || undefined} alt="Preview" className="mt-2 h-16 w-16 object-cover rounded-xl border border-brand-sand-200" />
+                        <div className="mt-2 relative inline-block">
+                          <img src={editingProduct.imageUrl} alt="Preview" className="h-16 w-16 object-cover rounded-xl border border-brand-sand-200" />
+                          <button type="button" onClick={() => setEditingProduct({ ...editingProduct!, imageUrl: '' })} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"><Trash2 size={12} /></button>
+                        </div>
                       ) : null}
+                    </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Additional Gallery Images</label>
+                    <input 
+                       type="file" 
+                       accept="image/*"
+                       multiple
+                         onChange={(e) => {
+                           processFiles(e.target.files, (urls) => {
+                             setEditingProduct({ ...editingProduct!, additionalImages: [...(editingProduct!.additionalImages || []), ...urls] });
+                           });
+                         }} 
+                         className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-brand-sand-100 file:text-brand-green-900 hover:file:bg-brand-sand-200" 
+                      />
+                      {editingProduct.additionalImages && editingProduct.additionalImages.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {editingProduct.additionalImages.map((imgUrl, i) => (
+                            <div key={i} className="relative inline-block">
+                              <img src={imgUrl} className="h-16 w-16 object-cover rounded-xl border border-brand-sand-200" />
+                              <button type="button" onClick={() => {
+                                const newArr = [...editingProduct.additionalImages!];
+                                newArr.splice(i, 1);
+                                setEditingProduct({ ...editingProduct!, additionalImages: newArr });
+                              }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"><Trash2 size={12} /></button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                    <label className="block text-sm font-medium mb-1">Description Images</label>
+                     <p className="text-xs text-gray-500 mb-2">These images will be displayed below the product description in full size.</p>
+                    <input 
+                       type="file" 
+                       accept="image/*"
+                       multiple
+                         onChange={(e) => {
+                           // Use 1600px for description images so they appear full quality
+                           processFiles(e.target.files, (urls) => {
+                             setEditingProduct({ ...editingProduct!, descriptionImages: [...(editingProduct!.descriptionImages || []), ...urls] });
+                           }, 1600, 1600);
+                         }} 
+                         className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-brand-sand-100 file:text-brand-green-900 hover:file:bg-brand-sand-200" 
+                      />
+                      {editingProduct.descriptionImages && editingProduct.descriptionImages.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {editingProduct.descriptionImages.map((imgUrl, i) => (
+                            <div key={i} className="relative inline-block">
+                              <img src={imgUrl} className="h-16 w-16 object-cover rounded-xl border border-brand-sand-200" />
+                              <button type="button" onClick={() => {
+                                const newArr = [...editingProduct.descriptionImages!];
+                                newArr.splice(i, 1);
+                                setEditingProduct({ ...editingProduct!, descriptionImages: newArr });
+                              }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"><Trash2 size={12} /></button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                   <div className="flex items-center gap-2 mt-4">
@@ -460,11 +899,16 @@ export default function AdminDashboard() {
 
       {activeTab === 'orders' && (
         <div className="space-y-4">
-          {orders.sort((a,b) => b.createdAt - a.createdAt).slice(0, 20).map(order => (
+          {[...orders].sort((a,b) => b.createdAt - a.createdAt).slice(0, 20).map(order => (
             <div key={order.id} className="bg-white border rounded-2xl p-6 flex flex-col md:flex-row justify-between md:items-center gap-4 hover:border-brand-sand-300 transition-colors">
               <div>
                 <p className="font-medium text-brand-green-900 flex items-center gap-2">
-                  {order.userName} - ₹{order.totalPrice}
+                  {order.userName} - ₹{order.totalPrice?.toLocaleString()}
+                  {order.shippingChargeEstimate ? (
+                    <span className="text-xs font-normal text-gray-500 whitespace-nowrap">(Shipping: {order.shippingChargeEstimate})</span>
+                  ) : order.shippingCharge > 0 ? (
+                    <span className="text-xs font-normal text-gray-500 whitespace-nowrap">(Incl. ₹{order.shippingCharge} shipping)</span>
+                  ) : null}
                   {order.isGift && <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded-full font-bold">🎁 GIFT ORDER</span>}
                 </p>
                 <p className="text-xs text-gray-400 mt-1">{new Date(order.createdAt).toLocaleString()} | Phone: {order.phone}</p>
@@ -478,7 +922,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center text-sm text-gray-600">
-                <span className="bg-brand-sand-100 px-3 py-1 rounded-full whitespace-nowrap">{order.items.length} items</span>
+                <span className="bg-brand-sand-100 px-3 py-1 rounded-full whitespace-nowrap">{order.items?.length || 0} items</span>
                 
                 <div className="flex items-center gap-2">
                   <span className={`px-3 py-1 rounded-full uppercase text-xs font-bold tracking-wider ${
@@ -496,7 +940,10 @@ export default function AdminDashboard() {
                            try {
                              await updateDoc(doc(db, 'orders', order.id), { status: 'completed' });
                              setOrders(orders.map(o => o.id === order.id ? { ...o, status: 'completed' } : o));
-                           } catch (e) { console.error(e); alert('Failed to update status'); }
+                           } catch (e) { 
+                             handleFirestoreError(e, OperationType.UPDATE, `orders/${order.id}`);
+                             alert('Failed to update status'); 
+                           }
                          }}
                          className="px-3 py-1 text-xs font-medium bg-green-50 text-green-700 hover:bg-green-100 rounded-lg transition-colors border border-green-200"
                        >
@@ -508,7 +955,10 @@ export default function AdminDashboard() {
                              try {
                                await updateDoc(doc(db, 'orders', order.id), { status: 'cancelled' });
                                setOrders(orders.map(o => o.id === order.id ? { ...o, status: 'cancelled' } : o));
-                             } catch (e) { console.error(e); alert('Failed to update status'); }
+                             } catch (e) { 
+                              handleFirestoreError(e, OperationType.UPDATE, `orders/${order.id}`);
+                              alert('Failed to update status'); 
+                            }
                            }
                          }}
                          className="px-3 py-1 text-xs font-medium bg-red-50 text-red-700 hover:bg-red-100 rounded-lg transition-colors border border-red-200"
@@ -521,6 +971,109 @@ export default function AdminDashboard() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+      {activeTab === 'coupons' && (
+        <div className="space-y-8">
+          <div className="bg-white border rounded-2xl p-6 shadow-sm">
+            <h2 className="text-xl font-serif text-brand-green-900 mb-6">Create New Discount Code</h2>
+            <form onSubmit={handleAddCoupon} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Code</label>
+                <input 
+                  type="text" 
+                  value={newCoupon.code} 
+                  onChange={e => setNewCoupon({...newCoupon, code: e.target.value})} 
+                  placeholder="SAVE20"
+                  className="w-full px-4 py-2 bg-brand-sand-50 border border-brand-sand-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-gold-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Type</label>
+                <select 
+                  value={newCoupon.type} 
+                  onChange={e => setNewCoupon({...newCoupon, type: e.target.value as any})}
+                  className="w-full px-4 py-2 bg-brand-sand-50 border border-brand-sand-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-gold-500"
+                >
+                  <option value="percentage">Percentage (%)</option>
+                  <option value="fixed">Fixed Amount (₹)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-2">
+                  {newCoupon.type === 'percentage' ? 'Discount %' : 'Discount ₹'}
+                </label>
+                <input 
+                  type="number" 
+                  value={newCoupon.discount} 
+                  onChange={e => setNewCoupon({...newCoupon, discount: Number(e.target.value)})} 
+                  className="w-full px-4 py-2 bg-brand-sand-50 border border-brand-sand-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-gold-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Min. Purchase (₹)</label>
+                <input 
+                  type="number" 
+                  value={newCoupon.minPurchase} 
+                  onChange={e => setNewCoupon({...newCoupon, minPurchase: Number(e.target.value)})} 
+                  className="w-full px-4 py-2 bg-brand-sand-50 border border-brand-sand-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-gold-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Limit Per Person</label>
+                <input 
+                  type="number" 
+                  value={newCoupon.usageLimit} 
+                  onChange={e => setNewCoupon({...newCoupon, usageLimit: Number(e.target.value)})} 
+                  placeholder="0 = Unlimited"
+                  className="w-full px-4 py-2 bg-brand-sand-50 border border-brand-sand-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-gold-500"
+                />
+              </div>
+              <button type="submit" className="md:col-span-5 bg-brand-green-900 text-white font-bold py-2 px-6 rounded-lg hover:bg-brand-green-800 transition-colors flex items-center justify-center gap-2">
+                <Plus size={18} /> Add Code
+              </button>
+            </form>
+          </div>
+
+          <div className="bg-white border rounded-2xl shadow-sm overflow-hidden">
+            <table className="w-full text-left">
+              <thead className="bg-brand-sand-100 border-b border-brand-sand-200">
+                <tr>
+                  <th className="p-4 text-xs font-bold text-gray-500 uppercase">Code</th>
+                  <th className="p-4 text-xs font-bold text-gray-500 uppercase">Discount</th>
+                  <th className="p-4 text-xs font-bold text-gray-500 uppercase">Min. Purchase</th>
+                  <th className="p-4 text-xs font-bold text-gray-500 uppercase">Limit/Person</th>
+                  <th className="p-4 text-xs font-bold text-gray-500 uppercase">Total Used</th>
+                  <th className="p-4 text-xs font-bold text-gray-500 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-brand-sand-200">
+                {coupons.map(coupon => (
+                  <tr key={coupon.id} className="hover:bg-brand-sand-50">
+                    <td className="p-4 font-bold text-brand-green-900">{coupon.code}</td>
+                    <td className="p-4 text-gray-600">
+                      {coupon.type === 'percentage' ? `${coupon.discount}%` : `₹${coupon.discount}`}
+                    </td>
+                    <td className="p-4 text-gray-600">₹{coupon.minPurchase || 0}</td>
+                    <td className="p-4 text-gray-600">
+                      {coupon.usageLimit > 0 ? `${coupon.usageLimit} times` : '∞'}
+                    </td>
+                    <td className="p-4 text-brand-green-700 font-medium">{coupon.usageCount || 0}</td>
+                    <td className="p-4">
+                      <button onClick={() => handleDeleteCoupon(coupon.id)} className="text-red-500 hover:text-red-700">
+                        <Trash2 size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {coupons.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="p-8 text-center text-gray-400 italic">No discount codes created yet.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

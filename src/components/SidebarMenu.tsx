@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Menu, X, Home, ShoppingBag, User, Info, Phone, LayoutDashboard } from 'lucide-react';
+import { Menu, X, Home, ShoppingBag, User, Info, Phone, LayoutDashboard, Truck } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -15,9 +15,8 @@ export default function SidebarMenu() {
 
   const navLinks = [
     { name: 'Home', path: '/', icon: Home },
-    { name: 'My Orders', path: '/my-orders', icon: ShoppingBag },
-    { name: 'My Account', path: '/profile', icon: User },
-    { name: 'About Us', path: '/about', icon: Info },
+    { name: 'Track My Order', path: 'https://thermsouq.shiprocket.co', icon: Truck, isExternal: true },
+    { name: 'About The RM Souq', path: '/about', icon: Info },
     { name: 'Contact Us', path: '/contact', icon: Phone },
   ];
 
@@ -63,6 +62,22 @@ export default function SidebarMenu() {
             const Icon = link.icon;
             const isActive = location.pathname === link.path;
             
+            if (link.isExternal) {
+              return (
+                <a
+                  key={link.name}
+                  href={link.path}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={closeSidebar}
+                  className={`flex items-center gap-4 px-8 py-4 transition-colors font-medium text-brand-sand-100 hover:bg-brand-green-800 hover:text-brand-sand-50`}
+                >
+                  <Icon size={20} className="opacity-70" />
+                  {link.name}
+                </a>
+              );
+            }
+
             return (
               <Link
                 key={link.name}

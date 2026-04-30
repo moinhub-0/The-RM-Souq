@@ -1,7 +1,12 @@
+import React from "react";
+import { useSettings } from "../context/SettingsContext";
+
 export function FloatingWhatsApp() {
+  const { settings } = useSettings();
+  
   return (
     <a 
-      href="https://wa.me/917853903438" 
+      href={`https://wa.me/${settings.phoneNumber}`} 
       target="_blank" 
       rel="noreferrer" 
       className="fixed bottom-6 right-6 bg-[#25D366] text-white p-4 rounded-full shadow-lg hover:bg-[#1ebe57] transition-all hover:scale-110 z-50 flex items-center justify-center"

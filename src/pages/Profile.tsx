@@ -4,6 +4,7 @@ import { useCart } from '../contexts/CartContext';
 import { useProducts } from '../contexts/ProductContext';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { LogOut, User as UserIcon, Heart, Trash2, ShoppingCart } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function Profile() {
   const { user, profile, loading, loginWithGoogle, logout, toggleWishlist } = useAuth();
@@ -58,7 +59,12 @@ export default function Profile() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-12">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="max-w-4xl mx-auto py-12"
+    >
       <div className="bg-white rounded-3xl p-8 shadow-sm border border-brand-sand-200">
         <div className="flex items-center justify-between mb-8 pb-8 border-b border-brand-sand-100">
           <div className="flex items-center gap-4">
@@ -106,8 +112,16 @@ export default function Profile() {
             
             {wishlistProducts.length > 0 ? (
               <div className="space-y-4">
-                {wishlistProducts.map(product => (
-                  <div key={product.id} className="flex gap-4 p-4 rounded-2xl border border-brand-sand-200 bg-white">
+                <AnimatePresence>
+                  {wishlistProducts.map(product => (
+                    <motion.div 
+                      layout
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      key={product.id} 
+                      className="flex gap-4 p-4 rounded-2xl border border-brand-sand-200 bg-white"
+                    >
                     <img src={product.imageUrl || undefined} alt={product.name} className="w-20 h-20 object-cover rounded-xl bg-brand-sand-100" />
                     <div className="flex-1 flex flex-col justify-between">
                       <div>
@@ -132,8 +146,9 @@ export default function Profile() {
                         </button>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
+                </AnimatePresence>
               </div>
             ) : (
               <div className="bg-brand-sand-50 p-6 rounded-2xl text-gray-500 text-center flex flex-col items-center justify-center h-[200px]">
@@ -145,6 +160,6 @@ export default function Profile() {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

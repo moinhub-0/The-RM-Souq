@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { ShoppingBag, Calendar, MapPin } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface Order {
   id: string;
@@ -65,23 +66,39 @@ export default function MyOrders() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-12 px-4 sm:px-0">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="max-w-4xl mx-auto py-12 px-4 sm:px-0"
+    >
       <h1 className="text-3xl font-serif text-brand-green-900 mb-8 flex items-center gap-3">
         <ShoppingBag className="text-brand-gold-500" />
         My Orders
       </h1>
 
       {orders.length === 0 ? (
-        <div className="bg-brand-sand-50 p-12 text-center rounded-2xl border border-brand-sand-200">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-brand-sand-50 p-12 text-center rounded-2xl border border-brand-sand-200"
+        >
           <p className="text-gray-500 text-lg mb-4">You have not placed any orders yet.</p>
           <a href="/" className="text-brand-gold-600 hover:text-brand-gold-700 font-medium hover:underline">
             Start Shopping
           </a>
-        </div>
+        </motion.div>
       ) : (
         <div className="space-y-6">
-          {orders.map(order => (
-            <div key={order.id} className="bg-white border border-brand-sand-200 rounded-2xl p-6 shadow-sm">
+          <AnimatePresence>
+            {orders.map((order, index) => (
+              <motion.div 
+                key={order.id} 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="bg-white border border-brand-sand-200 rounded-2xl p-6 shadow-sm"
+              >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-brand-sand-100 pb-4 mb-4 gap-4">
                 <div>
                   <p className="text-sm text-gray-500 flex items-center gap-2">
@@ -134,10 +151,11 @@ export default function MyOrders() {
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </AnimatePresence>
+      </div>
       )}
-    </div>
+    </motion.div>
   );
 }

@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
-import { useNavigate } from 'react-router-dom';
-import { ShoppingBag, MapPin, Phone, Mail, User as UserIcon } from 'lucide-react';
-import { collection, addDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { useSettings } from '../context/SettingsContext';
+import { Link, useNavigate } from 'react-router-dom';
+import { ShoppingBag, MapPin, Phone, Mail, User as UserIcon, Tag, X } from 'lucide-react';
+import { collection, addDoc, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { motion } from 'motion/react';
 
 export default function Checkout() {
   const { user, profile, loading, updateProfile } = useAuth();
   const { items, totalPrice, clearCart } = useCart();
+  const { settings } = useSettings();
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
@@ -26,6 +29,73 @@ export default function Checkout() {
   const [isGift, setIsGift] = useState(false);
   const [pincodeError, setPincodeError] = useState('');
   const [isValidatingPincode, setIsValidatingPincode] = useState(false);
+
+  // Shipping Calculation State
+  const shippingChargeRange = "₹5 - ₹30";
+
+  // Discount Code State
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [couponError, setCouponError] = useState('');
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+
+  const calculateDiscount = () => {
+    if (!appliedCoupon) return 0;
+    if (appliedCoupon.type === 'percentage') {
+      return (totalPrice * appliedCoupon.discount) / 100;
+    }
+    return appliedCoupon.discount;
+  };
+
+  const finalPrice = totalPrice - calculateDiscount();
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode) return;
+    setIsApplyingCoupon(true);
+    setCouponError('');
+    try {
+      const q = query(collection(db, 'coupons'), where('code', '==', couponCode.toUpperCase().trim()));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        setCouponError('Invalid discount code');
+        setAppliedCoupon(null);
+      } else {
+        const couponData = querySnapshot.docs[0].data();
+        
+        // Per-person usage check by querying previous orders
+        const ordersQ = query(
+          collection(db, 'orders'), 
+          where('userId', '==', user.uid), 
+          where('couponUsed', '==', couponData.code)
+        );
+        const ordersSnapshot = await getDocs(ordersQ);
+        const userUsageCount = ordersSnapshot.docs.filter(d => d.data().status !== 'cancelled').length;
+
+        if (couponData.usageLimit > 0 && userUsageCount >= couponData.usageLimit) {
+          setCouponError(`You have already used this code ${userUsageCount} time(s). Limit: ${couponData.usageLimit} per person.`);
+          setAppliedCoupon(null);
+        } else if (totalPrice < (couponData.minPurchase || 0)) {
+          setCouponError(`Minimum purchase of ₹${couponData.minPurchase} required`);
+          setAppliedCoupon(null);
+        } else {
+          setAppliedCoupon({ id: querySnapshot.docs[0].id, ...couponData });
+          setCouponCode('');
+        }
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.GET, 'coupons');
+      setCouponError('Error applying coupon');
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+    setCouponError('');
+  };
 
   useEffect(() => {
     let active = true;
@@ -127,15 +197,30 @@ export default function Checkout() {
         phone: formData.phone,
         shippingDetails: formData,
         items: items,
-        totalPrice: totalPrice,
+        totalPrice: finalPrice,
+        shippingChargeEstimate: shippingChargeRange,
+        discountApplied: calculateDiscount(),
+        couponUsed: appliedCoupon?.code || null,
         status: 'pending',
         createdAt: Date.now(),
         isGift: isGift
       };
       await addDoc(collection(db, 'orders'), newOrder);
 
+      // Update coupon usage count if used
+      if (appliedCoupon) {
+        try {
+          const couponRef = doc(db, 'coupons', appliedCoupon.id);
+          await updateDoc(couponRef, {
+            usageCount: (appliedCoupon.usageCount || 0) + 1
+          });
+        } catch (couponErr) {
+          handleFirestoreError(couponErr, OperationType.UPDATE, `coupons/${appliedCoupon.id}`);
+        }
+      }
+
       // 3. Generate WhatsApp Text
-      const waNumber = "917853903438";
+      const waNumber = settings.phoneNumber;
       const itemListText = items.map(i => `- ${i.quantity}x ${i.name} (\u20B9${i.price * i.quantity})`).join('\n');
       
       const giftMessage = isGift ? "🎁 *THIS IS A GIFT ORDER*\n*Payment Method requested:* UPI Only (No COD for gifts)\n\n" : "";
@@ -144,7 +229,8 @@ export default function Checkout() {
 
 ${giftMessage}*Order Summary:*
 ${itemListText}
-*Total:* \u20B9${totalPrice}
+${appliedCoupon ? `*Discount (${appliedCoupon.code}):* -\u20B9${calculateDiscount()}\n` : ''}*Shipping Charge:* ${shippingChargeRange} (To be confirmed)
+*Total (Excl. Shipping):* \u20B9${finalPrice}
 
 *Customer Details:*
 Name: ${formData.name}
@@ -169,7 +255,7 @@ Please confirm my order and share available payment methods.`;
       navigate('/my-orders');
       
     } catch (error) {
-      console.error("Error processing order", error);
+      handleFirestoreError(error, OperationType.WRITE, 'orders');
       alert("There was an error processing your order. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -177,7 +263,12 @@ Please confirm my order and share available payment methods.`;
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-8">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="max-w-4xl mx-auto py-8"
+    >
       <h1 className="text-3xl mb-8 border-b border-brand-sand-200 pb-4">Checkout</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
@@ -266,10 +357,67 @@ Please confirm my order and share available payment methods.`;
             </div>
 
             <div className="border-t border-brand-sand-200 pt-4 mb-6">
-              <div className="flex justify-between items-center text-xl font-serif text-brand-green-900 mb-4">
-                <span>Total Amount</span>
-                <span>₹ {totalPrice.toLocaleString()}</span>
+              {/* Discount Code Section */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Discount Code</label>
+                {!appliedCoupon ? (
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      value={couponCode} 
+                      onChange={e => setCouponCode(e.target.value)}
+                      placeholder="Enter code"
+                      className={`flex-1 p-2 bg-white border ${couponError ? 'border-red-500' : 'border-brand-sand-300'} rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-gold-500 uppercase`}
+                    />
+                    <button 
+                      onClick={handleApplyCoupon}
+                      disabled={isApplyingCoupon || !couponCode}
+                      className="bg-brand-green-900 text-white px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-50"
+                    >
+                      {isApplyingCoupon ? '...' : 'Apply'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between bg-green-50 border border-green-200 p-3 rounded-lg text-green-800">
+                    <div className="flex items-center gap-2">
+                      <Tag size={16} />
+                      <span className="font-bold">{appliedCoupon.code}</span>
+                      <span className="text-sm">({appliedCoupon.type === 'percentage' ? `${appliedCoupon.discount}% off` : `₹${appliedCoupon.discount} off`})</span>
+                    </div>
+                    <button onClick={handleRemoveCoupon} className="text-green-800 hover:text-green-900">
+                      <X size={18} />
+                    </button>
+                  </div>
+                )}
+                {couponError && <p className="text-xs text-red-500 mt-1">{couponError}</p>}
               </div>
+
+              {appliedCoupon && (
+                <div className="flex justify-between items-center text-sm text-gray-600 mb-2">
+                  <span>Subtotal</span>
+                  <span>₹ {totalPrice.toLocaleString()}</span>
+                </div>
+              )}
+              {appliedCoupon && (
+                <div className="flex justify-between items-center text-sm text-green-600 mb-2">
+                  <span>Discount ({appliedCoupon.code})</span>
+                  <span>- ₹ {calculateDiscount().toLocaleString()}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center text-sm text-brand-green-700 mb-2">
+                <span>Shipping Charge</span>
+                <span className="italic font-medium">{shippingChargeRange}</span>
+              </div>
+
+              <div className="flex justify-between items-center text-xl font-serif text-brand-green-900 mb-1 pt-2 border-t border-brand-sand-200">
+                <span>Total Amount</span>
+                <span>₹ {finalPrice.toLocaleString()}</span>
+              </div>
+              <p className="text-[10px] text-gray-500 mb-4 text-right">*Shipping will be informed on WhatsApp (₹5-₹30)</p>
+              
+              <p className="text-xs text-brand-green-800 font-medium mb-4 italic flex items-center gap-1">
+                <MapPin size={12} /> Standard delivery (5-30 days)
+              </p>
               
               <div className={`border-2 p-5 rounded-2xl mb-6 transition-all shadow-sm ${isGift ? 'bg-brand-gold-50 border-brand-gold-400' : 'bg-white border-brand-sand-200 hover:border-brand-gold-300'}`}>
                 <label className="flex items-start gap-4 cursor-pointer">
@@ -317,6 +465,6 @@ Please confirm my order and share available payment methods.`;
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
