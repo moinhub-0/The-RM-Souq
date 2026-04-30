@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import { useProducts } from '../contexts/ProductContext';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { LogOut, User as UserIcon, Heart, Trash2, ShoppingCart } from 'lucide-react';
+import { LogOut, User as UserIcon, Heart, Trash2, ShoppingCart, ShoppingBag } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function Profile() {
@@ -76,13 +76,22 @@ export default function Profile() {
               <p className="text-gray-500">{user.email}</p>
             </div>
           </div>
-          <button 
-            onClick={logout}
-            className="flex items-center gap-2 text-brand-green-700 hover:text-brand-green-900 transition-colors font-medium px-4 py-2 rounded-lg bg-brand-sand-50"
-          >
-            <LogOut size={18} />
-            Logout
-          </button>
+          <div className="flex gap-3">
+            <Link 
+              to="/my-orders"
+              className="flex items-center gap-2 text-brand-green-700 hover:text-brand-green-900 transition-colors font-medium px-4 py-2 rounded-lg bg-brand-sand-50"
+            >
+              <ShoppingBag size={18} />
+              My Orders
+            </Link>
+            <button 
+              onClick={logout}
+              className="flex items-center gap-2 text-brand-green-700 hover:text-brand-green-900 transition-colors font-medium px-4 py-2 rounded-lg bg-brand-sand-50"
+            >
+              <LogOut size={18} />
+              Logout
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">

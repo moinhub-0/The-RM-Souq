@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { ShoppingBag, Calendar, MapPin } from 'lucide-react';
+import { ShoppingBag, Calendar, MapPin, Truck, ExternalLink, PackageCheck, Clock, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface Order {
@@ -12,6 +12,7 @@ interface Order {
   status: string;
   createdAt: number;
   isGift?: boolean;
+  trackingId?: string;
   shippingDetails: {
     fullAddress: string;
     city: string;
@@ -107,7 +108,6 @@ export default function MyOrders() {
                       year: 'numeric', month: 'long', day: 'numeric'
                     })}
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">Order ID: {order.id}</p>
                 </div>
                 <div className="flex items-center gap-4">
                   {order.isGift && (
@@ -116,16 +116,48 @@ export default function MyOrders() {
                     </span>
                   )}
                   <span className="text-lg font-medium text-brand-green-900">₹{order.totalPrice.toLocaleString()}</span>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium uppercase tracking-wider ${
-                    order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                    order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {order.status}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-1.5 ${
+                      order.status === 'pending' ? 'bg-yellow-50 text-yellow-700 border border-yellow-100' :
+                      order.status === 'shipped' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
+                      order.status === 'completed' ? 'bg-green-50 text-green-700 border border-green-100' :
+                      order.status === 'cancelled' ? 'bg-red-50 text-red-700 border border-red-100' :
+                      'bg-gray-50 text-gray-700 border border-gray-100'
+                    }`}>
+                      {order.status === 'pending' && <Clock size={12} />}
+                      {order.status === 'shipped' && <Truck size={12} />}
+                      {order.status === 'completed' && <PackageCheck size={12} />}
+                      {order.status === 'cancelled' && <XCircle size={12} />}
+                      {order.status}
+                    </span>
+                  </div>
                 </div>
               </div>
+
+              {(order.status === 'shipped' || order.status === 'completed') && order.trackingId && (
+                <div className="mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
+                  <div className="bg-[#0a3d1d]/5 border border-[#0a3d1d]/10 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-[#0a3d1d] p-3 rounded-xl text-white">
+                        <Truck size={24} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-[#0a3d1d] opacity-60">Shipment Status</p>
+                        <p className="text-sm font-bold text-[#0a3d1d]">Your order has been shipped!</p>
+                        <p className="text-xs text-brand-green-800/70">Tracking ID: {order.trackingId}</p>
+                      </div>
+                    </div>
+                    <a 
+                      href={`https://shiprocket.co/tracking/${order.trackingId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full sm:w-auto bg-[#0a3d1d] text-white px-6 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#062914] transition-all shadow-md active:scale-95"
+                    >
+                      Track with Shiprocket <ExternalLink size={14} />
+                    </a>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-4">

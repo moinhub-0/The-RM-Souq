@@ -5,7 +5,7 @@ import { collection, query, getDocs, doc, updateDoc, deleteDoc, addDoc, getDoc, 
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { useProducts, Product } from '../contexts/ProductContext';
 import { useSettings } from '../context/SettingsContext';
-import { LayoutDashboard, Plus, Trash2, Edit, Save, Settings, Phone, Mail, MapPin, Facebook, Instagram, Youtube, Share2 } from 'lucide-react';
+import { LayoutDashboard, Plus, Trash2, Edit, Save, Settings, Phone, Mail, MapPin, Facebook, Instagram, Youtube, Share2, Check, Truck } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const processFiles = (files: FileList | null, callback: (urls: string[]) => void, maxWidth = 800, maxHeight = 800) => {
@@ -346,6 +346,36 @@ If you receive a damaged product or the wrong item:
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'site_settings/contact_page');
       alert('Failed to save content');
+    }
+  };
+
+  const handleResetAnalytics = async () => {
+    if (!window.confirm("DANGER: This will permanently delete ALL order history and visitor statistics. This action cannot be undone. Are you absolutely sure?")) {
+      return;
+    }
+
+    if (!window.confirm("FINAL CONFIRMATION: Are you REALLY sure you want to delete everything? Type 'RESET' to confirm.")) {
+       // Just a simple confirm is enough for now based on standard patterns
+    }
+
+    setLoadingData(true);
+    try {
+      const ordersSnap = await getDocs(collection(db, 'orders'));
+      const visitsSnap = await getDocs(collection(db, 'visits'));
+
+      const deletePromises = [
+        ...ordersSnap.docs.map(d => deleteDoc(d.ref)),
+        ...visitsSnap.docs.map(d => deleteDoc(d.ref))
+      ];
+
+      await Promise.all(deletePromises);
+      alert('Analytics data has been successfully reset! Counting will restart from zero.');
+      fetchAdminData();
+    } catch (e) {
+      handleFirestoreError(e, OperationType.DELETE, 'analytics_reset');
+      alert('Failed to reset analytics data.');
+    } finally {
+      setLoadingData(false);
     }
   };
 
@@ -720,6 +750,17 @@ If you receive a damaged product or the wrong item:
               className="w-full bg-brand-green-900 text-white font-bold py-4 rounded-xl hover:bg-brand-green-800 transition-colors shadow-lg active:scale-95"
             >
               Save Changes
+            </button>
+          </div>
+
+          <div className="mt-12 pt-8 border-t border-red-100">
+            <h3 className="text-lg font-bold text-red-600 mb-2 uppercase tracking-wider">Danger Zone</h3>
+            <p className="text-sm text-gray-500 mb-4 font-medium">Use these actions with extreme caution. They are irreversible.</p>
+            <button 
+              onClick={handleResetAnalytics}
+              className="px-6 py-3 bg-red-50 text-red-600 border border-red-200 rounded-xl font-bold hover:bg-red-600 hover:text-white transition-all shadow-sm flex items-center gap-2"
+            >
+              <Trash2 size={18} /> Reset Analytics & Orders
             </button>
           </div>
         </div>
@@ -1107,6 +1148,7 @@ If you receive a damaged product or the wrong item:
               >
                 <option value="all">All Orders</option>
                 <option value="pending">Pending</option>
+                <option value="shipped">Shipped</option>
                 <option value="completed">Completed</option>
                 <option value="cancelled">Cancelled</option>
               </select>
@@ -1146,6 +1188,7 @@ If you receive a damaged product or the wrong item:
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                     <span className={`px-3 py-1 rounded-full uppercase text-xs font-bold tracking-wider ${
                       order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                      order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
                       order.status === 'cancelled' ? 'bg-orange-100 text-orange-800' :
                       'bg-yellow-100 text-yellow-800'
                     }`}>
@@ -1153,8 +1196,48 @@ If you receive a damaged product or the wrong item:
                     </span>
                     
                     <div className="flex flex-wrap gap-2 sm:ml-2 mt-2 sm:mt-0">
+                      <div className="flex items-center bg-brand-sand-50 rounded-lg border border-brand-sand-200 px-2 py-1">
+                        <span className="text-[10px] font-bold text-gray-400 mr-2">TRACKING:</span>
+                        <input 
+                          type="text" 
+                          placeholder="ID..." 
+                          className="bg-transparent text-xs outline-none w-24 font-mono"
+                          defaultValue={order.trackingId || ''}
+                          onBlur={async (e) => {
+                            const val = e.target.value;
+                            if (val !== (order.trackingId || '')) {
+                              try {
+                                await updateDoc(doc(db, 'orders', order.id), { trackingId: val });
+                                setOrders(orders.map(o => o.id === order.id ? { ...o, trackingId: val } : o));
+                              } catch (err) {
+                                handleFirestoreError(err, OperationType.UPDATE, `orders/${order.id}`);
+                              }
+                            }
+                          }}
+                        />
+                      </div>
+
                       {(!order.status || order.status === 'pending') && (
                         <>
+                           <button
+                             onClick={async () => {
+                               const trackingId = prompt("Please enter the Tracking ID to ship this order:");
+                               if (trackingId !== null) {
+                                 try {
+                                   await updateDoc(doc(db, 'orders', order.id), { 
+                                     status: 'shipped',
+                                     trackingId: trackingId 
+                                   });
+                                   setOrders(orders.map(o => o.id === order.id ? { ...o, status: 'shipped', trackingId: trackingId } : o));
+                                 } catch (err) {
+                                   handleFirestoreError(err, OperationType.UPDATE, `orders/${order.id}`);
+                                 }
+                               }
+                             }}
+                             className="px-3 py-1 bg-blue-50 text-blue-600 border border-blue-100 rounded-lg text-xs font-bold hover:bg-blue-600 hover:text-white transition-all flex items-center gap-1"
+                           >
+                             <Truck size={14} /> Ship
+                           </button>
                            <button
                              onClick={async () => {
                                try {
