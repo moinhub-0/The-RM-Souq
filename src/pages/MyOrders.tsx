@@ -148,7 +148,7 @@ export default function MyOrders() {
                       </div>
                     </div>
                     <a 
-                      href={`https://shiprocket.co/tracking/${order.trackingId}`}
+                      href={`https://thermsouq.shiprocket.co/tracking/${order.trackingId}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-full sm:w-auto bg-[#0a3d1d] text-white px-6 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#062914] transition-all shadow-md active:scale-95"
