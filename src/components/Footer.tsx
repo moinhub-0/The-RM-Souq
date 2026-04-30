@@ -24,24 +24,26 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
           <div>
-            <h3 className="font-serif text-2xl mb-4 text-brand-gold-400">The RM Souq</h3>
-            <p className="text-sm opacity-80 max-w-sm leading-relaxed">
-              Premium Sunnah & Halal Products, honoring tradition and purity. Curated with care for you and your family.
+            <Link to="/" className="bg-white p-4 rounded-2xl inline-block mb-6 shadow-sm hover:shadow-md transition-all group">
+              <img src="/logo.png" alt="Ruhani Logo" className="h-14 w-auto object-contain group-hover:scale-105 transition-transform" />
+            </Link>
+            <p className="text-base font-medium opacity-90 max-w-xs leading-relaxed mb-8">
+              Setting a higher standard in purity, transparency, and quality for your health and wellness.
             </p>
-            <div className="flex items-center gap-4 mt-6">
+            <div className="flex items-center gap-8 mt-6">
               {settings.facebook && (
-                <a href={settings.facebook} target="_blank" rel="noopener noreferrer" className="bg-brand-green-800 p-2 rounded-full hover:bg-brand-gold-500 hover:text-brand-green-900 transition-all">
-                  <Facebook size={18} />
+                <a href={settings.facebook} target="_blank" rel="noopener noreferrer" className="text-white hover:text-brand-gold-400 transition-all">
+                  <Facebook size={24} />
                 </a>
               )}
               {settings.instagram && (
-                <a href={settings.instagram} target="_blank" rel="noopener noreferrer" className="bg-brand-green-800 p-2 rounded-full hover:bg-brand-gold-500 hover:text-brand-green-900 transition-all">
-                  <Instagram size={18} />
+                <a href={settings.instagram} target="_blank" rel="noopener noreferrer" className="text-white hover:text-brand-gold-400 transition-all">
+                  <Instagram size={24} />
                 </a>
               )}
               {settings.youtube && (
-                <a href={settings.youtube} target="_blank" rel="noopener noreferrer" className="bg-brand-green-800 p-2 rounded-full hover:bg-brand-gold-500 hover:text-brand-green-900 transition-all">
-                  <Youtube size={18} />
+                <a href={settings.youtube} target="_blank" rel="noopener noreferrer" className="text-white hover:text-brand-gold-400 transition-all">
+                  <Youtube size={24} />
                 </a>
               )}
             </div>
@@ -72,7 +74,7 @@ export default function Footer() {
             </ul>
           </div>
         </div>
-        <div className="border-t border-brand-green-800 pt-8 text-center text-xs opacity-60 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="border-t border-brand-green-800 pt-8 text-center text-[10px] uppercase font-black tracking-widest opacity-40 flex flex-col items-center gap-4">
           <p>&copy; {new Date().getFullYear()} The RM Souq. All rights reserved.</p>
           <p>Developed by <Link to="/developer" className="text-brand-gold-400 hover:text-brand-gold-300 transition-colors font-medium opacity-100">Moinuddin Hasan</Link></p>
         </div>

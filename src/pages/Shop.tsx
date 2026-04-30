@@ -1,66 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useProducts, Product } from '../contexts/ProductContext';
 import { motion } from 'motion/react';
-import { Heart } from 'lucide-react';
-
-const ProductCard: React.FC<{ 
-  product: Product; 
-  index: number; 
-  isWished: boolean; 
-  onToggleWishlist: (e: React.MouseEvent, productId: string) => void;
-  onAddToCart: (product: Product) => void;
-}> = ({ product, index, isWished, onToggleWishlist, onAddToCart }) => {
-  return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
-      className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-brand-sand-200 flex flex-col relative"
-    >
-      <Link to={`/product/${product.id}`} className="absolute inset-0 z-0" aria-label={`View ${product.name}`} />
-      
-      <div className="aspect-square overflow-hidden relative bg-brand-sand-100">
-        <img 
-          src={product.imageUrl || undefined} 
-          alt={product.name} 
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        />
-        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold text-brand-green-900 shadow-sm z-10">
-          {product.category}
-        </div>
-        <button 
-          onClick={(e) => onToggleWishlist(e, product.id)}
-          className={`absolute top-4 left-4 p-2 rounded-full backdrop-blur-sm z-10 transition-colors shadow-sm ${isWished ? 'bg-red-50 text-red-500' : 'bg-white/90 text-gray-400 hover:text-red-500'}`}
-        >
-          <Heart size={18} fill={isWished ? "currentColor" : "none"} />
-        </button>
-      </div>
-      <div className="p-6 flex flex-col flex-1 relative z-10 pointer-events-none">
-        <div className="flex justify-between items-start mb-2">
-          <h3 className="text-xl text-brand-green-900 font-serif line-clamp-1">{product.name}</h3>
-          {product.weight && (
-            <span className="text-xs font-semibold text-brand-sand-300 bg-brand-sand-50 px-2 py-0.5 rounded-md border border-brand-sand-100 whitespace-nowrap ml-2">
-              {product.weight}
-            </span>
-          )}
-        </div>
-        <p className="text-sm text-gray-500 mb-4 line-clamp-2">{product.description}</p>
-        <div className="mt-auto flex items-center justify-between pointer-events-auto">
-          <span className="font-semibold text-lg text-brand-green-700">₹ {product.price.toLocaleString()}</span>
-          <button 
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddToCart(product); }}
-            className="bg-brand-green-900 text-brand-gold-400 hover:bg-brand-green-800 hover:text-brand-gold-300 px-4 py-2 rounded-lg font-medium transition-colors text-sm"
-          >
-            Add to Cart
-          </button>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
+import { ProductCard } from '../components/ProductCard';
 
 export default function Shop() {
   const { addToCart } = useCart();

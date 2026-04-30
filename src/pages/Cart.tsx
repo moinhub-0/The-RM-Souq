@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { Minus, Plus, Trash2, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { ProductRating } from '../components/ProductRating';
 
 export default function Cart() {
   const { items, updateQuantity, removeFromCart, totalPrice, totalItems } = useCart();
@@ -53,7 +54,15 @@ export default function Cart() {
               <div className="flex-1 flex flex-col justify-between">
                 <div>
                   <h3 className="text-lg font-medium text-brand-green-900">{item.name}</h3>
-                  <div className="text-brand-green-700 font-semibold mt-1">â¹. {item.price.toLocaleString()}</div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <span className="text-brand-green-700 font-semibold">₹{item.price.toLocaleString()}</span>
+                      {item.mrp && item.mrp > item.price && (
+                        <span className="text-xs text-gray-400 line-through">₹{item.mrp.toLocaleString()}</span>
+                      )}
+                    </div>
+                    <ProductRating productId={item.id} className="mt-1 bg-brand-sand-50/50 px-1.5 py-0.5 rounded" />
+                  </div>
                 </div>
                 <div className="flex items-center justify-between mt-4">
                   <div className="flex items-center gap-3 bg-brand-sand-50 rounded-lg p-1 border border-brand-sand-200">

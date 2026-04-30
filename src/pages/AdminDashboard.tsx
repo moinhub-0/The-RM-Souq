@@ -5,7 +5,7 @@ import { collection, query, getDocs, doc, updateDoc, deleteDoc, addDoc, getDoc, 
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { useProducts, Product } from '../contexts/ProductContext';
 import { useSettings } from '../context/SettingsContext';
-import { LayoutDashboard, Plus, Trash2, Edit, Save, Settings, Phone, Mail, MapPin, Facebook, Instagram, Youtube } from 'lucide-react';
+import { LayoutDashboard, Plus, Trash2, Edit, Save, Settings, Phone, Mail, MapPin, Facebook, Instagram, Youtube, Share2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const processFiles = (files: FileList | null, callback: (urls: string[]) => void, maxWidth = 800, maxHeight = 800) => {
@@ -64,6 +64,7 @@ export default function AdminDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [orderStatusFilter, setOrderStatusFilter] = useState<'all' | 'pending' | 'completed' | 'cancelled'>('all');
   const [customers, setCustomers] = useState<any[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
   const [visits, setVisits] = useState<any[]>([]);
   const [coupons, setCoupons] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(true);
@@ -91,6 +92,7 @@ export default function AdminDashboard() {
 
   // Pages Editing State
   const [aboutConfig, setAboutConfig] = useState({
+    banner: '',
     visionText: "A modern digital marketplace born from a distinct vision: bringing high-quality, authentic products like Ruhani Talbina and premium dates to customers across India. We merge seamless technology with reliable service to deliver an exceptional e-commerce experience.",
     founderName: "Moinuddin Hasan",
     founderRole: "The Founder",
@@ -102,6 +104,10 @@ export default function AdminDashboard() {
     coFounderBio2: "He specializes in customer relationship management (CRM) and crafting long-term business growth strategies, ensuring every customer feels valued and heard.",
     equationTitle: "Reyan + Moin = The RM Souq",
     equationText: "Our partnership is the perfect synthesis. By combining cutting-edge technical architecture with visionary business strategy, we created a platform designed to serve you better."
+  });
+
+  const [contactConfig, setContactConfig] = useState({
+    banner: '',
   });
 
   const [legalPagesConfig, setLegalPagesConfig] = useState({
@@ -213,6 +219,14 @@ If you receive a damaged product or the wrong item:
         setAboutConfig(aboutSnap.data() as any);
       }
 
+      const contactSnap = await getDoc(doc(db, 'site_settings', 'contact_page')).catch(e => {
+        handleFirestoreError(e, OperationType.GET, 'site_settings/contact_page');
+        throw e;
+      });
+      if (contactSnap.exists()) {
+        setContactConfig(contactSnap.data() as any);
+      }
+
       const legalSnap = await getDoc(doc(db, 'site_settings', 'legal_pages')).catch(e => {
         handleFirestoreError(e, OperationType.GET, 'site_settings/legal_pages');
         throw e;
@@ -234,6 +248,13 @@ If you receive a damaged product or the wrong item:
       });
       const fetchedCoupons = couponsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       setCoupons(fetchedCoupons);
+
+      const messagesSnap = await getDocs(collection(db, 'contact_messages')).catch(e => {
+        handleFirestoreError(e, OperationType.LIST, 'contact_messages');
+        throw e;
+      });
+      const fetchedMessages = messagesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setMessages(fetchedMessages);
     } catch (e) {
       console.error(e);
     } finally {
@@ -317,6 +338,17 @@ If you receive a damaged product or the wrong item:
     }
   };
 
+  const handleSaveContactConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await setDoc(doc(db, 'site_settings', 'contact_page'), contactConfig);
+      alert('Contact Page banner updated successfully!');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'site_settings/contact_page');
+      alert('Failed to save content');
+    }
+  };
+
   const handleSaveLegalConfig = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -386,6 +418,7 @@ If you receive a damaged product or the wrong item:
         <button onClick={() => setActiveTab('analytics')} className={`px-4 py-2 font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'analytics' ? 'border-brand-gold-500 text-brand-green-900' : 'border-transparent text-gray-500 hover:text-brand-green-700'}`}>Analytics</button>
         <button onClick={() => setActiveTab('products')} className={`px-4 py-2 font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'products' ? 'border-brand-gold-500 text-brand-green-900' : 'border-transparent text-gray-500 hover:text-brand-green-700'}`}>Manage Products</button>
         <button onClick={() => setActiveTab('customers')} className={`px-4 py-2 font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'customers' ? 'border-brand-gold-500 text-brand-green-900' : 'border-transparent text-gray-500 hover:text-brand-green-700'}`}>Customers</button>
+        <button onClick={() => setActiveTab('messages')} className={`px-4 py-2 font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'messages' ? 'border-brand-gold-500 text-brand-green-900' : 'border-transparent text-gray-500 hover:text-brand-green-700'}`}>Messages</button>
         <button onClick={() => setActiveTab('orders')} className={`px-4 py-2 font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'orders' ? 'border-brand-gold-500 text-brand-green-900' : 'border-transparent text-gray-500 hover:text-brand-green-700'}`}>Recent Orders</button>
         <button onClick={() => setActiveTab('pages')} className={`px-4 py-2 font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'pages' ? 'border-brand-gold-500 text-brand-green-900' : 'border-transparent text-gray-500 hover:text-brand-green-700'}`}>Edit About Us</button>
         <button onClick={() => setActiveTab('legal_pages')} className={`px-4 py-2 font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'legal_pages' ? 'border-brand-gold-500 text-brand-green-900' : 'border-transparent text-gray-500 hover:text-brand-green-700'}`}>Edit Legal Pages</button>
@@ -429,81 +462,156 @@ If you receive a damaged product or the wrong item:
       )}
 
       {activeTab === 'pages' && (
-        <div className="bg-white border rounded-2xl p-6 md:p-8 max-w-4xl shadow-sm">
-          <h2 className="text-2xl font-serif text-brand-green-900 mb-6 flex items-center gap-2">
-            <Edit className="text-brand-gold-500" size={24} /> Edit About Us Page
-          </h2>
-          <form onSubmit={handleSaveAboutConfig} className="space-y-8">
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Vision Section</h3>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-600">Vision Text</label>
-                <textarea rows={4} value={aboutConfig.visionText} onChange={e => setAboutConfig({...aboutConfig, visionText: e.target.value})} className="w-full p-3 border rounded-xl" />
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold text-gray-800 border-b pb-2">The Founder</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-600">Name</label>
-                  <input type="text" value={aboutConfig.founderName} onChange={e => setAboutConfig({...aboutConfig, founderName: e.target.value})} className="w-full p-3 border rounded-xl" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-600">Role Tag</label>
-                  <input type="text" value={aboutConfig.founderRole} onChange={e => setAboutConfig({...aboutConfig, founderRole: e.target.value})} className="w-full p-3 border rounded-xl" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-600">Bio Paragraph 1</label>
-                <textarea rows={3} value={aboutConfig.founderBio1} onChange={e => setAboutConfig({...aboutConfig, founderBio1: e.target.value})} className="w-full p-3 border rounded-xl" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-600">Bio Paragraph 2</label>
-                <textarea rows={3} value={aboutConfig.founderBio2} onChange={e => setAboutConfig({...aboutConfig, founderBio2: e.target.value})} className="w-full p-3 border rounded-xl" />
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold text-gray-800 border-b pb-2">The Co-Founder</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-600">Name</label>
-                  <input type="text" value={aboutConfig.coFounderName} onChange={e => setAboutConfig({...aboutConfig, coFounderName: e.target.value})} className="w-full p-3 border rounded-xl" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-600">Role Tag</label>
-                  <input type="text" value={aboutConfig.coFounderRole} onChange={e => setAboutConfig({...aboutConfig, coFounderRole: e.target.value})} className="w-full p-3 border rounded-xl" />
+        <div className="space-y-8">
+          <div className="bg-white border rounded-2xl p-6 md:p-8 max-w-4xl shadow-sm">
+            <h2 className="text-2xl font-serif text-brand-green-900 mb-6 flex items-center gap-2">
+              <Edit className="text-brand-gold-500" size={24} /> Edit About Us Page
+            </h2>
+            <form onSubmit={handleSaveAboutConfig} className="space-y-8">
+              <div className="space-y-4">
+                <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Hero Banner</h3>
+                <div className="space-y-4">
+                  {aboutConfig.banner ? (
+                    <div className="relative group">
+                      <img src={aboutConfig.banner} alt="About Banner" className="w-full h-40 object-cover rounded-xl border" />
+                      <button 
+                        type="button"
+                        onClick={() => setAboutConfig({...aboutConfig, banner: ''})}
+                        className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center hover:border-brand-gold-400 transition-colors cursor-pointer relative">
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={(e) => processFiles(e.target.files, (urls) => setAboutConfig({...aboutConfig, banner: urls[0]}), 1200, 600)}
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                      />
+                      <Plus className="mx-auto text-gray-400 mb-2" size={32} />
+                      <p className="text-sm text-gray-500 font-medium tracking-tight">Upload About Banner Image</p>
+                      <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest font-black">Recommended: 1200x600px</p>
+                    </div>
+                  )}
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-600">Bio Paragraph 1</label>
-                <textarea rows={3} value={aboutConfig.coFounderBio1} onChange={e => setAboutConfig({...aboutConfig, coFounderBio1: e.target.value})} className="w-full p-3 border rounded-xl" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-600">Bio Paragraph 2</label>
-                <textarea rows={3} value={aboutConfig.coFounderBio2} onChange={e => setAboutConfig({...aboutConfig, coFounderBio2: e.target.value})} className="w-full p-3 border rounded-xl" />
-              </div>
-            </div>
 
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold text-gray-800 border-b pb-2">The Equation</h3>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-600">Title</label>
-                <input type="text" value={aboutConfig.equationTitle} onChange={e => setAboutConfig({...aboutConfig, equationTitle: e.target.value})} className="w-full p-3 border rounded-xl" />
+              <div className="space-y-4">
+                <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Vision Section</h3>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-600">Vision Text</label>
+                  <textarea rows={4} value={aboutConfig.visionText} onChange={e => setAboutConfig({...aboutConfig, visionText: e.target.value})} className="w-full p-3 border rounded-xl" />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-600">Text</label>
-                <textarea rows={3} value={aboutConfig.equationText} onChange={e => setAboutConfig({...aboutConfig, equationText: e.target.value})} className="w-full p-3 border rounded-xl" />
-              </div>
-            </div>
 
-            <div className="flex justify-end pt-4">
-              <button type="submit" className="flex items-center gap-2 px-6 py-3 bg-brand-green-900 text-white rounded-xl shadow hover:bg-brand-green-800 transition-colors font-medium">
-                <Save size={20} /> Save Setting
-              </button>
-            </div>
-          </form>
+              <div className="space-y-4">
+                <h3 className="text-lg font-bold text-gray-800 border-b pb-2">The Founder</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-gray-600">Name</label>
+                    <input type="text" value={aboutConfig.founderName} onChange={e => setAboutConfig({...aboutConfig, founderName: e.target.value})} className="w-full p-3 border rounded-xl" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-gray-600">Role Tag</label>
+                    <input type="text" value={aboutConfig.founderRole} onChange={e => setAboutConfig({...aboutConfig, founderRole: e.target.value})} className="w-full p-3 border rounded-xl" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-600">Bio Paragraph 1</label>
+                  <textarea rows={3} value={aboutConfig.founderBio1} onChange={e => setAboutConfig({...aboutConfig, founderBio1: e.target.value})} className="w-full p-3 border rounded-xl" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-600">Bio Paragraph 2</label>
+                  <textarea rows={3} value={aboutConfig.founderBio2} onChange={e => setAboutConfig({...aboutConfig, founderBio2: e.target.value})} className="w-full p-3 border rounded-xl" />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-bold text-gray-800 border-b pb-2">The Co-Founder</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-gray-600">Name</label>
+                    <input type="text" value={aboutConfig.coFounderName} onChange={e => setAboutConfig({...aboutConfig, coFounderName: e.target.value})} className="w-full p-3 border rounded-xl" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-gray-600">Role Tag</label>
+                    <input type="text" value={aboutConfig.coFounderRole} onChange={e => setAboutConfig({...aboutConfig, coFounderRole: e.target.value})} className="w-full p-3 border rounded-xl" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-600">Bio Paragraph 1</label>
+                  <textarea rows={3} value={aboutConfig.coFounderBio1} onChange={e => setAboutConfig({...aboutConfig, coFounderBio1: e.target.value})} className="w-full p-3 border rounded-xl" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-600">Bio Paragraph 2</label>
+                  <textarea rows={3} value={aboutConfig.coFounderBio2} onChange={e => setAboutConfig({...aboutConfig, coFounderBio2: e.target.value})} className="w-full p-3 border rounded-xl" />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-bold text-gray-800 border-b pb-2">The Equation</h3>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-600">Title</label>
+                  <input type="text" value={aboutConfig.equationTitle} onChange={e => setAboutConfig({...aboutConfig, equationTitle: e.target.value})} className="w-full p-3 border rounded-xl" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-600">Text</label>
+                  <textarea rows={3} value={aboutConfig.equationText} onChange={e => setAboutConfig({...aboutConfig, equationText: e.target.value})} className="w-full p-3 border rounded-xl" />
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-4">
+                <button type="submit" className="flex items-center gap-2 px-6 py-3 bg-brand-green-900 text-white rounded-xl shadow hover:bg-brand-green-800 transition-colors font-medium">
+                  <Save size={20} /> Save About Settings
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div className="bg-white border rounded-2xl p-6 md:p-8 max-w-4xl shadow-sm">
+            <h2 className="text-2xl font-serif text-brand-green-900 mb-6 flex items-center gap-2">
+              <Mail className="text-brand-gold-500" size={24} /> Edit Contact Us Page
+            </h2>
+            <form onSubmit={handleSaveContactConfig} className="space-y-8">
+              <div className="space-y-4">
+                <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Hero Banner</h3>
+                <div className="space-y-4">
+                  {contactConfig.banner ? (
+                    <div className="relative group">
+                      <img src={contactConfig.banner} alt="Contact Banner" className="w-full h-40 object-cover rounded-xl border" />
+                      <button 
+                        type="button"
+                        onClick={() => setContactConfig({...contactConfig, banner: ''})}
+                        className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center hover:border-brand-gold-400 transition-colors cursor-pointer relative">
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={(e) => processFiles(e.target.files, (urls) => setContactConfig({...contactConfig, banner: urls[0]}), 1200, 600)}
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                      />
+                      <Plus className="mx-auto text-gray-400 mb-2" size={32} />
+                      <p className="text-sm text-gray-500 font-medium tracking-tight">Upload Contact Banner Image</p>
+                      <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest font-black">Recommended: 1200x600px</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-4">
+                <button type="submit" className="flex items-center gap-2 px-6 py-3 bg-brand-green-900 text-white rounded-xl shadow hover:bg-brand-green-800 transition-colors font-medium">
+                  <Save size={20} /> Save Contact Settings
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
@@ -735,16 +843,20 @@ If you receive a damaged product or the wrong item:
                     <input required value={editingProduct.name} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} className="w-full p-2 border rounded-xl" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Description</label>
-                    <textarea required value={editingProduct.description} onChange={e => setEditingProduct({...editingProduct, description: e.target.value})} className="w-full p-2 border rounded-xl" rows={3} />
+                    <label className="block text-sm font-medium mb-1">Description (Markdown Supported)</label>
+                    <textarea required value={editingProduct.description} onChange={e => setEditingProduct({...editingProduct, description: e.target.value})} className="w-full p-2 border rounded-xl font-mono text-sm" rows={6} placeholder="Describe the product. You can use **bold**, *italics*, or - lists." />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">Price (₹)</label>
+                      <label className="block text-sm font-medium mb-1">MRP (₹)</label>
+                      <input type="number" placeholder="Optional" value={editingProduct.mrp || ''} onChange={e => setEditingProduct({...editingProduct, mrp: e.target.value ? Number(e.target.value) : undefined})} className="w-full p-2 border rounded-xl" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Selling Price (₹)</label>
                       <input type="number" required value={editingProduct.price} onChange={e => setEditingProduct({...editingProduct, price: Number(e.target.value)})} className="w-full p-2 border rounded-xl" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Weight (Optional)</label>
+                      <label className="block text-sm font-medium mb-1">Weight</label>
                       <input type="text" placeholder="e.g. 500g, 1kg" value={editingProduct.weight || ''} onChange={e => setEditingProduct({...editingProduct, weight: e.target.value})} className="w-full p-2 border rounded-xl" />
                     </div>
                   </div>
@@ -802,7 +914,19 @@ If you receive a damaged product or the wrong item:
                                 const newArr = [...editingProduct.additionalImages!];
                                 newArr.splice(i, 1);
                                 setEditingProduct({ ...editingProduct!, additionalImages: newArr });
-                              }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"><Trash2 size={12} /></button>
+                              }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md z-10"><Trash2 size={12} /></button>
+                              <button 
+                                type="button" 
+                                onClick={() => {
+                                  const markdown = `![Product Image](${imgUrl})`;
+                                  navigator.clipboard.writeText(markdown);
+                                  alert('Markdown image link copied! You can now paste it in the description.');
+                                }}
+                                className="absolute -bottom-2 -right-2 bg-brand-gold-500 text-brand-green-900 rounded-full p-1 shadow-md z-10"
+                                title="Copy Markdown Link"
+                              >
+                                <Plus size={12} />
+                              </button>
                             </div>
                           ))}
                         </div>
@@ -833,7 +957,19 @@ If you receive a damaged product or the wrong item:
                                 const newArr = [...editingProduct.descriptionImages!];
                                 newArr.splice(i, 1);
                                 setEditingProduct({ ...editingProduct!, descriptionImages: newArr });
-                              }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"><Trash2 size={12} /></button>
+                              }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md z-10"><Trash2 size={12} /></button>
+                              <button 
+                                type="button" 
+                                onClick={() => {
+                                  const markdown = `![Description Image](${imgUrl})`;
+                                  navigator.clipboard.writeText(markdown);
+                                  alert('Markdown image link copied! You can now paste it in the description.');
+                                }}
+                                className="absolute -bottom-2 -right-2 bg-brand-gold-500 text-brand-green-900 rounded-full p-1 shadow-md z-10"
+                                title="Copy Markdown Link"
+                              >
+                                <Plus size={12} />
+                              </button>
                             </div>
                           ))}
                         </div>
@@ -901,6 +1037,63 @@ If you receive a damaged product or the wrong item:
         </div>
       )}
 
+      {activeTab === 'messages' && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold text-brand-green-900 mb-4">Contact Form Messages</h2>
+          {messages.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-gray-300">
+              <p className="text-gray-500 font-medium">No messages yet.</p>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {[...messages].sort((a,b) => b.createdAt - a.createdAt).map((msg) => (
+                <div key={msg.id} className="bg-white border border-brand-sand-200 rounded-2xl p-6 shadow-sm">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h4 className="font-bold text-brand-green-900 text-lg">{msg.firstName} {msg.lastName}</h4>
+                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-6 text-sm text-gray-500 mt-1">
+                        <span className="flex items-center gap-1"><Mail size={14} /> <a href={`mailto:${msg.email}`} className="hover:text-brand-green-700 underline">{msg.email}</a></span>
+                        <span className="flex items-center gap-1"><Phone size={14} /> <a href={`tel:${msg.phone}`} className="hover:text-brand-green-700 underline">{msg.phone}</a></span>
+                      </div>
+                    </div>
+                    <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
+                      {new Date(msg.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="bg-brand-sand-50 p-4 rounded-xl text-gray-700 whitespace-pre-wrap text-sm border border-brand-sand-100">
+                    {msg.message}
+                  </div>
+                  <div className="mt-4 flex justify-end gap-2">
+                    <button
+                      onClick={async () => {
+                        if(window.confirm('Are you sure you want to delete this message?')) {
+                          try {
+                            await deleteDoc(doc(db, 'contact_messages', msg.id));
+                            setMessages(messages.filter(m => m.id !== msg.id));
+                          } catch (e) {
+                            handleFirestoreError(e, OperationType.DELETE, `contact_messages/${msg.id}`);
+                            alert('Failed to delete message');
+                          }
+                        }
+                      }}
+                      className="px-3 py-1.5 text-xs font-bold bg-white text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200 flex items-center gap-1"
+                    >
+                      <Trash2 size={14} /> Delete
+                    </button>
+                    <a
+                      href={`mailto:${msg.email}?subject=Re: Your inquiry to The RM Souq`}
+                      className="px-3 py-1.5 text-xs font-bold bg-brand-green-900 text-white hover:bg-brand-green-800 rounded-lg transition-all shadow-sm flex items-center gap-1"
+                    >
+                      <Mail size={14} /> Reply via Email
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {activeTab === 'orders' && (
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -953,46 +1146,81 @@ If you receive a damaged product or the wrong item:
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                     <span className={`px-3 py-1 rounded-full uppercase text-xs font-bold tracking-wider ${
                       order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                      order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                      order.status === 'cancelled' ? 'bg-orange-100 text-orange-800' :
                       'bg-yellow-100 text-yellow-800'
                     }`}>
                       {order.status || 'pending'}
                     </span>
                     
-                    {(!order.status || order.status === 'pending') && (
-                      <div className="flex gap-2 sm:ml-2 mt-2 sm:mt-0">
-                         <button
-                           onClick={async () => {
-                             try {
-                               await updateDoc(doc(db, 'orders', order.id), { status: 'completed' });
-                               setOrders(orders.map(o => o.id === order.id ? { ...o, status: 'completed' } : o));
-                             } catch (e) { 
-                               handleFirestoreError(e, OperationType.UPDATE, `orders/${order.id}`);
-                               alert('Failed to update status'); 
-                             }
-                           }}
-                           className="px-3 py-1.5 text-xs font-bold bg-green-500 text-white hover:bg-green-600 rounded-lg transition-all shadow-sm"
-                         >
-                           Complete
-                         </button>
-                         <button
-                           onClick={async () => {
-                             if(window.confirm('Are you sure you want to cancel this order?')) {
+                    <div className="flex flex-wrap gap-2 sm:ml-2 mt-2 sm:mt-0">
+                      {(!order.status || order.status === 'pending') && (
+                        <>
+                           <button
+                             onClick={async () => {
                                try {
-                                 await updateDoc(doc(db, 'orders', order.id), { status: 'cancelled' });
-                                 setOrders(orders.map(o => o.id === order.id ? { ...o, status: 'cancelled' } : o));
+                                 await updateDoc(doc(db, 'orders', order.id), { status: 'completed' });
+                                 setOrders(orders.map(o => o.id === order.id ? { ...o, status: 'completed' } : o));
                                } catch (e) { 
                                  handleFirestoreError(e, OperationType.UPDATE, `orders/${order.id}`);
                                  alert('Failed to update status'); 
                                }
-                             }
-                           }}
-                           className="px-3 py-1.5 text-xs font-bold bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors border border-red-200"
-                         >
-                           Cancel
-                         </button>
-                      </div>
-                    )}
+                             }}
+                             className="px-3 py-1.5 text-xs font-bold bg-green-500 text-white hover:bg-green-600 rounded-lg transition-all shadow-sm"
+                           >
+                             Complete
+                           </button>
+                           <button
+                             onClick={async () => {
+                               if(window.confirm('Are you sure you want to cancel this order?')) {
+                                 try {
+                                   await updateDoc(doc(db, 'orders', order.id), { status: 'cancelled' });
+                                   setOrders(orders.map(o => o.id === order.id ? { ...o, status: 'cancelled' } : o));
+                                 } catch (e) { 
+                                   handleFirestoreError(e, OperationType.UPDATE, `orders/${order.id}`);
+                                   alert('Failed to update status'); 
+                                 }
+                               }
+                             }}
+                             className="px-3 py-1.5 text-xs font-bold bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors border border-orange-200"
+                           >
+                             Cancel
+                           </button>
+                        </>
+                      )}
+                      <button
+                        onClick={async () => {
+                          if(window.confirm('Are you sure you want to permanently delete this order? This action cannot be undone.')) {
+                            try {
+                              await deleteDoc(doc(db, 'orders', order.id));
+                              setOrders(orders.filter(o => o.id !== order.id));
+                            } catch (e) { 
+                              handleFirestoreError(e, OperationType.DELETE, `orders/${order.id}`);
+                              alert('Failed to delete order'); 
+                            }
+                          }
+                        }}
+                        className="px-3 py-1.5 text-xs font-bold bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors border border-red-200 flex items-center justify-center gap-1"
+                      >
+                        <Trash2 size={14} /> Delete
+                      </button>
+                      <button
+                        onClick={() => {
+                          const summary = `*Order ID:* ${order.id}\n*Customer:* ${order.userName}\n*Phone:* ${order.phone || 'N/A'}\n*Total:* ₹${order.totalPrice?.toLocaleString() || 0}\n\n*Items:*\n${order.items?.map((i: any) => `- ${i.quantity}x ${i.name}`).join('\n')}`;
+                          if (navigator.share) {
+                            navigator.share({
+                              title: 'Order Summary',
+                              text: summary,
+                            }).catch((error) => console.log('Sharing failed', error));
+                          } else {
+                            navigator.clipboard.writeText(summary);
+                            alert('Order details copied to clipboard!');
+                          }
+                        }}
+                        className="px-3 py-1.5 text-xs font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200 flex items-center justify-center gap-1"
+                      >
+                        <Share2 size={14} /> Share
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

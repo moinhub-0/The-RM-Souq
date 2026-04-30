@@ -3,12 +3,14 @@ import { useParams, Link } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useProducts } from '../contexts/ProductContext';
-import { Heart, Star, ArrowLeft } from 'lucide-react';
+import { Heart, Star, ArrowLeft, Share2, Minus, Plus as PlusIcon, RotateCcw, Truck, ShieldCheck, Wallet, ChevronLeft, ChevronRight } from 'lucide-react';
 import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { motion } from 'motion/react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+
+import { ProductCard } from '../components/ProductCard';
 
 interface Review {
   id: string;
@@ -33,6 +35,11 @@ export default function ProductDetails() {
   const [rating, setRating] = useState(5);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeImage, setActiveImage] = useState<string | null>(null);
+  const [quantity, setQuantity] = useState(1);
+
+  const relatedProducts = products
+    .filter(p => p.category === product?.category && p.id !== product?.id)
+    .slice(0, 5);
 
   useEffect(() => {
     if (!product) {
@@ -75,12 +82,16 @@ export default function ProductDetails() {
 
   const isWished = profile?.wishlist?.includes(product.id) || false;
 
-  const handleToggleWishlist = () => {
+  const handleToggleWishlist = (e?: React.MouseEvent, productId?: string) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (!user) {
       loginWithGoogle();
       return;
     }
-    toggleWishlist(product.id);
+    toggleWishlist(productId || product.id);
   };
 
   const handleAddReview = async (e: React.FormEvent) => {
@@ -126,144 +137,227 @@ export default function ProductDetails() {
       </Link>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 bg-white rounded-3xl p-6 sm:p-12 shadow-sm border border-brand-sand-100">
+        {/* Left Side: Image Gallery */}
         <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2, duration: 0.6 }}
-          className="space-y-4"
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="space-y-6"
         >
-          <div className="relative aspect-square rounded-2xl overflow-hidden bg-brand-sand-50">
-            <img src={activeImage || product.imageUrl || undefined} alt={product.name} className="w-full h-full object-cover" />
+          <div className="aspect-square rounded-[2.5rem] overflow-hidden bg-brand-sand-50 border border-brand-sand-100 shadow-sm relative group/main">
+            <img 
+              src={activeImage || product.imageUrl || undefined} 
+              alt={product.name} 
+              className="w-full h-full object-cover transition-transform duration-700 group-hover/main:scale-110"
+            />
           </div>
-          {product.additionalImages && product.additionalImages.length > 0 && (
-            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-              <button 
-                onClick={() => setActiveImage(product.imageUrl)}
-                className={`flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 transition-colors ${(!activeImage || activeImage === product.imageUrl) ? 'border-brand-green-900' : 'border-transparent'}`}
+          
+          {(product.additionalImages && product.additionalImages.length > 0) && (
+            <div className="relative group/gallery">
+              <div 
+                id="thumbnail-container"
+                className="flex gap-4 overflow-x-auto pb-4 scrollbar-none items-center snap-x scroll-smooth px-2"
               >
-                <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
-              </button>
-              {product.additionalImages.map((img, idx) => (
                 <button 
-                  key={idx}
-                  onClick={() => setActiveImage(img)}
-                  className={`flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 transition-colors ${activeImage === img ? 'border-brand-green-900' : 'border-transparent'}`}
+                  onClick={() => setActiveImage(product.imageUrl)}
+                  className={`flex-shrink-0 w-24 h-24 rounded-2xl overflow-hidden border-2 transition-all snap-start ${(!activeImage || activeImage === product.imageUrl) ? 'border-brand-green-900 ring-4 ring-brand-green-50 shadow-lg' : 'border-brand-sand-100 opacity-60 hover:opacity-100'}`}
                 >
-                  <img src={img} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover" />
+                  <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
                 </button>
-              ))}
+                {product.additionalImages.map((img, idx) => (
+                  <button 
+                    key={idx}
+                    onClick={() => setActiveImage(img)}
+                    className={`flex-shrink-0 w-24 h-24 rounded-2xl overflow-hidden border-2 transition-all snap-start ${activeImage === img ? 'border-brand-green-900 ring-4 ring-brand-green-50 shadow-lg' : 'border-brand-sand-100 opacity-60 hover:opacity-100'}`}
+                  >
+                    <img src={img} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+              
+              {/* Navigation Arrows */}
+              <button 
+                onClick={() => {
+                  const el = document.getElementById('thumbnail-container');
+                  if (el) el.scrollBy({ left: -200, behavior: 'smooth' });
+                }}
+                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 bg-white shadow-lg rounded-full p-2 text-brand-green-900 opacity-0 group-hover/gallery:opacity-100 transition-opacity z-10 border border-brand-sand-200 hover:bg-brand-sand-50 transition-all"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <button 
+                onClick={() => {
+                  const el = document.getElementById('thumbnail-container');
+                  if (el) el.scrollBy({ left: 200, behavior: 'smooth' });
+                }}
+                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 bg-white shadow-lg rounded-full p-2 text-brand-green-900 opacity-0 group-hover/gallery:opacity-100 transition-opacity z-10 border border-brand-sand-200 hover:bg-brand-sand-50 transition-all"
+              >
+                <ChevronRight size={20} />
+              </button>
             </div>
           )}
         </motion.div>
         
+        {/* Right Side: Product Details & Actions */}
         <motion.div 
-          initial={{ opacity: 0, x: 20 }}
+          initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.4, duration: 0.6 }}
-          className="space-y-8 flex flex-col justify-center"
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="flex flex-col h-full"
         >
-          <div>
-            <div className="flex justify-between items-start">
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <p className="text-sm font-semibold tracking-widest uppercase text-brand-gold-600">{product.category}</p>
-                  {product.weight && (
-                     <span className="text-xs font-bold text-brand-sand-300 bg-brand-sand-50 px-2 py-0.5 rounded-md border border-brand-sand-100">
-                       {product.weight}
-                     </span>
-                  )}
-                </div>
-                <h1 className="text-4xl sm:text-5xl mb-4 text-brand-green-900">{product.name}</h1>
+          <div className="space-y-8 flex-grow">
+            <div className="flex justify-between items-start gap-4">
+              <div className="space-y-3">
+                <span className="text-[10px] uppercase tracking-[0.2em] font-black text-brand-gold-600 px-3 py-1 bg-brand-gold-50 border border-brand-gold-100 rounded-full inline-block">Premium Collection</span>
+                <h1 className="text-4xl sm:text-5xl md:text-6xl text-brand-green-900 font-serif leading-[1.1]">{product.name}</h1>
               </div>
-              <button 
-                onClick={handleToggleWishlist}
-                className={`p-3 rounded-full border border-brand-sand-200 transition-colors ${isWished ? 'bg-red-50 text-red-500 border-red-100' : 'bg-white text-gray-400 hover:text-red-500'}`}
-                title={isWished ? "Remove from Wishlist" : "Add to Wishlist"}
-              >
-                <Heart size={24} fill={isWished ? "currentColor" : "none"} />
-              </button>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={() => {
+                    const shareData = { title: product.name, text: `Check out ${product.name} on The RM Souq!`, url: window.location.href };
+                    if (navigator.share) navigator.share(shareData).catch(console.error);
+                    else { navigator.clipboard.writeText(window.location.href); alert('Product link copied to clipboard!'); }
+                  }}
+                  className="p-3 rounded-full border border-brand-sand-200 bg-white text-gray-700 hover:bg-brand-sand-50 transition-all shadow-sm active:scale-95"
+                  title="Share Product"
+                >
+                  <Share2 size={24} />
+                </button>
+                <button 
+                  onClick={() => handleToggleWishlist(undefined, product.id)}
+                  className={`p-3 rounded-full border border-brand-sand-200 transition-all shadow-sm active:scale-95 ${isWished ? 'bg-red-50 text-red-500 border-red-100' : 'bg-white text-gray-400 hover:bg-brand-sand-50'}`}
+                  title={isWished ? "Remove from Wishlist" : "Add to Wishlist"}
+                >
+                  <Heart size={24} fill={isWished ? "currentColor" : "none"} />
+                </button>
+              </div>
             </div>
             
-            <div className="flex items-center gap-4 mb-6">
-              <span className="text-3xl font-bold text-brand-green-800">â¹. {product.price.toLocaleString()}</span>
+            <div className="flex flex-wrap items-center gap-6">
+              <div className="flex items-baseline gap-4">
+                <span className="text-4xl font-bold text-brand-green-800">₹{product.price.toLocaleString()}</span>
+                {product.mrp && product.mrp > product.price && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl text-gray-400 line-through font-medium">₹{product.mrp.toLocaleString()}</span>
+                    <span className="bg-red-600 text-white px-3 py-1 rounded-lg text-sm font-black tracking-widest shadow-sm">
+                      -{Math.round(((product.mrp - product.price) / product.mrp) * 100)}%
+                    </span>
+                  </div>
+                )}
+              </div>
               {reviews.length > 0 && (
-                <div className="flex items-center gap-1 text-yellow-500 bg-yellow-50 px-3 py-1 rounded-full text-sm font-medium">
+                <div className="flex items-center gap-2 text-yellow-500 bg-yellow-50 ring-1 ring-yellow-200 px-4 py-1.5 rounded-full text-sm font-bold shadow-sm">
                   <Star size={16} fill="currentColor" />
-                  {averageRating} <span className="text-gray-500">({reviews.length} reviews)</span>
+                  {averageRating} <span className="text-gray-400 font-medium ml-1">({reviews.length} reviews)</span>
                 </div>
               )}
             </div>
             
-            <p className="text-lg text-gray-600 leading-relaxed">
-              {product.description}
-            </p>
+            <div className="prose prose-lg prose-green max-w-none text-gray-600 leading-relaxed font-medium">
+              <Markdown remarkPlugins={[remarkGfm]}>{product.description}</Markdown>
+            </div>
 
-            {product.descriptionImages && product.descriptionImages.length > 0 && (
-              <div className="space-y-4 pt-4">
-                {product.descriptionImages.map((img, idx) => (
-                  <img key={idx} src={img} alt={`Description ${idx + 1}`} className="w-full rounded-2xl shadow-sm border border-brand-sand-100" />
-                ))}
+            <div className="flex flex-col sm:flex-row items-center gap-4 py-8">
+              <div className="flex flex-col gap-2 w-full sm:w-auto">
+                <span className="text-[10px] uppercase font-black tracking-[0.2em] text-brand-green-800 opacity-60 ml-4">QUANTITY</span>
+                <div className="flex items-center bg-white border border-brand-sand-300 rounded-full p-1.5 shadow-sm">
+                  <button 
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="p-3 hover:bg-brand-sand-50 rounded-full transition-colors text-brand-green-900 disabled:opacity-30 active:scale-90"
+                    disabled={quantity <= 1}
+                  >
+                    <Minus size={20} />
+                  </button>
+                  <input 
+                    type="number" 
+                    value={quantity}
+                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-14 text-center font-bold text-xl text-brand-green-900 bg-transparent outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <button 
+                    onClick={() => setQuantity(quantity + 1)}
+                    className="p-3 hover:bg-brand-sand-50 rounded-full transition-colors text-brand-green-900 active:scale-90"
+                  >
+                    <PlusIcon size={20} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-grow w-full pt-6 sm:pt-6">
+                <button 
+                  onClick={() => addToCart(product, quantity)}
+                  className="w-full bg-[#0a3d1d] text-white py-5 rounded-full font-black text-xl hover:bg-[#062914] transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 active:translate-y-0 flex items-center justify-center uppercase tracking-widest"
+                >
+                  Add to cart
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-[#0a3d1d] rounded-[2.5rem] p-10 grid grid-cols-2 md:grid-cols-4 gap-8 shadow-inner">
+              <div className="flex flex-col items-center text-center gap-4 group/badge">
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-brand-green-900 shadow-lg group-hover/badge:scale-110 transition-transform">
+                  <RotateCcw size={28} />
+                </div>
+                <span className="text-[10px] text-white font-black leading-tight tracking-[0.1em]">EASY RETURNS</span>
+              </div>
+              <div className="flex flex-col items-center text-center gap-4 group/badge">
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-brand-green-900 shadow-lg group-hover/badge:scale-110 transition-transform">
+                  <Wallet size={28} />
+                </div>
+                <span className="text-[10px] text-white font-black leading-tight tracking-[0.1em]">COD AVAILABLE</span>
+              </div>
+              <div className="flex flex-col items-center text-center gap-4 group/badge">
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-brand-green-900 shadow-lg group-hover/badge:scale-110 transition-transform">
+                  <Truck size={28} />
+                </div>
+                <span className="text-[10px] text-white font-black leading-tight tracking-[0.1em]">FAST DELIVERY</span>
+              </div>
+              <div className="flex flex-col items-center text-center gap-4 group/badge">
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-brand-green-900 shadow-lg group-hover/badge:scale-110 transition-transform">
+                  <ShieldCheck size={28} />
+                </div>
+                <span className="text-[10px] text-white font-black leading-tight tracking-[0.1em]">SECURE PAYMENTS</span>
+              </div>
+            </div>
+
+            {(product.highlightHeading || product.highlightContent) && (
+              <div className="bg-brand-green-50/50 border border-brand-green-100 rounded-3xl p-8 space-y-4">
+                {product.highlightHeading && (
+                  <h3 className="font-serif font-bold text-brand-green-900 text-2xl">{product.highlightHeading}</h3>
+                )}
+                {product.highlightContent && (
+                  <div className="prose prose-sm prose-green max-w-none text-brand-green-800 leading-relaxed font-medium">
+                    <Markdown remarkPlugins={[remarkGfm]}>{product.highlightContent}</Markdown>
+                  </div>
+                )}
               </div>
             )}
           </div>
-          
-          <div className="bg-brand-sand-50 border border-brand-sand-200 rounded-xl p-4 flex items-start gap-4">
-            <div className="bg-brand-gold-100 p-2 rounded-full text-brand-gold-600 shrink-0 mt-1">
-               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
-            </div>
-            <div>
-              <h3 className="font-semibold text-brand-green-900">Make it a Gift! 🎁</h3>
-              <p className="text-sm text-gray-600 mt-1 leading-relaxed">Want to send this to a loved one? Add to cart and select the <strong>gift option</strong> at checkout for elegant packaging.</p>
-            </div>
-          </div>
-
-          {(product.highlightHeading || product.highlightContent) && (
-            <div className="bg-brand-green-50 border border-brand-green-200 rounded-xl p-6 space-y-4">
-              {product.highlightHeading && (
-                <h3 className="font-serif font-semibold text-brand-green-900 text-lg mb-2">{product.highlightHeading}</h3>
-              )}
-              {product.highlightContent && (
-                <div className="prose prose-sm prose-green max-w-none text-brand-green-800">
-                  <Markdown remarkPlugins={[remarkGfm]}>{product.highlightContent}</Markdown>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Legacy hardcoded fallback for Talbina until data is migrated */}
-          {(!product.highlightHeading && !product.highlightContent) && product.name.toLowerCase().includes('talbina') && (
-            <div className="bg-brand-green-50 border border-brand-green-200 rounded-xl p-6 space-y-4">
-              <div>
-                <h3 className="font-serif font-semibold text-brand-green-900 text-lg mb-2">Prophetic Superfood Health Benefits</h3>
-                <ul className="list-disc list-inside text-sm text-brand-green-800 space-y-1">
-                  <li><strong>Boosts energy</strong> & stamina throughout the day</li>
-                  <li><strong>Aids digestion</strong> & soothes the stomach</li>
-                  <li><strong>Reduces anxiety</strong> & stress to calm the mind</li>
-                  <li><strong>High in fiber</strong> & essential minerals</li>
-                </ul>
-              </div>
-              <div className="pt-4 border-t border-brand-green-200/60">
-                <h3 className="font-serif font-semibold text-brand-green-900 text-lg mb-2">3-Step Easy Recipe Guide</h3>
-                <ol className="list-decimal list-inside text-sm text-brand-green-800 space-y-2">
-                  <li><strong>Mix:</strong> Stir 2-3 tablespoons with a glass of milk or water.</li>
-                  <li><strong>Cook:</strong> Simmer on low heat for 5-7 minutes, stirring continuously until thickened.</li>
-                  <li><strong>Sweeten:</strong> Add pure honey or chopped dates to match your taste.</li>
-                </ol>
-              </div>
-              <div className="pt-2 text-[10px] text-brand-green-700/60 font-medium">
-                Keywords: Best Talbina in India, Buy Ruhani Talbina Online, Prophetic Medicine Food
-              </div>
-            </div>
-          )}
-
-          <button 
-            onClick={() => addToCart(product)}
-            className="w-full bg-brand-green-900 text-brand-gold-400 py-4 rounded-xl font-semibold hover:bg-brand-green-800 transition-colors text-lg shadow-md hover:shadow-lg"
-          >
-            Add to Cart
-          </button>
         </motion.div>
       </div>
+
+      {/* Product Description Full Section */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="mt-20"
+      >
+        <div className="mb-12">
+          <h2 className="text-4xl text-brand-green-900 font-serif mb-6">Description</h2>
+          <div className="h-px w-full bg-brand-sand-200" />
+        </div>
+
+        {product.descriptionImages && product.descriptionImages.length > 0 && (
+          <div className="space-y-12">
+            {product.descriptionImages.map((img, idx) => (
+              <div key={idx} className="rounded-[2.5rem] overflow-hidden shadow-sm border border-brand-sand-100">
+                <img src={img} alt={`Detail ${idx + 1}`} className="w-full h-auto" />
+              </div>
+            ))}
+          </div>
+        )}
+      </motion.div>
 
       {/* Reviews Section */}
       <motion.div 
@@ -359,6 +453,47 @@ export default function ProductDetails() {
           </div>
         </div>
       </motion.div>
+
+      {/* Related Products Section */}
+      {relatedProducts.length > 0 && (
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="mt-24 pt-20 border-t border-brand-sand-200 relative"
+        >
+          {/* Subtle background accent */}
+          <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full max-w-4xl h-96 bg-brand-sand-100/30 blur-3xl rounded-full -z-10 pointer-events-none" />
+
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-4">
+            <div className="space-y-2">
+              <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-brand-gold-600 block">Curated for you</span>
+              <h2 className="text-4xl text-brand-green-900 font-serif leading-tight">Similar Treasures</h2>
+            </div>
+            <Link 
+              to="/" 
+              className="group flex items-center gap-2 text-brand-green-700 hover:text-brand-green-900 font-bold transition-all text-sm uppercase tracking-wider"
+            >
+              <span>Explore Collection</span>
+              <span className="group-hover:translate-x-1 transition-transform">→</span>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
+            {relatedProducts.map((p, index) => (
+              <ProductCard 
+                key={p.id} 
+                product={p} 
+                index={index} 
+                isWished={profile?.wishlist?.includes(p.id) || false}
+                onToggleWishlist={handleToggleWishlist}
+                onAddToCart={addToCart}
+              />
+            ))}
+          </div>
+        </motion.div>
+      )}
     </motion.div>
   );
 }

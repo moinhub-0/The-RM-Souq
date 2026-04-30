@@ -11,6 +11,7 @@ import { useSettings } from '../context/SettingsContext';
 export default function StaticPages({ page }: { page: 'about' | 'contact' | 'privacy' | 'shipping' | 'terms' | 'cancellation' | 'return' }) {
   const { settings } = useSettings();
   const [aboutConfig, setAboutConfig] = useState({
+    banner: '',
     visionText: "A modern digital marketplace born from a distinct vision: bringing high-quality, authentic products like Ruhani Talbina and premium dates to customers across India. We merge seamless technology with reliable service to deliver an exceptional e-commerce experience.",
     founderName: "Moinuddin Hasan",
     founderRole: "The Founder",
@@ -97,6 +98,10 @@ If you receive a damaged product or the wrong item:
 - Requests made after 48 hours of delivery.`,
   });
 
+  const [contactConfig, setContactConfig] = useState({
+    banner: '',
+  });
+
   useEffect(() => {
     if (page === 'about') {
       const fetchAboutConfig = async () => {
@@ -110,6 +115,18 @@ If you receive a damaged product or the wrong item:
         }
       };
       fetchAboutConfig();
+    } else if (page === 'contact') {
+      const fetchContactConfig = async () => {
+        try {
+          const snap = await getDoc(doc(db, 'site_settings', 'contact_page'));
+          if (snap.exists()) {
+            setContactConfig(snap.data() as any);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      };
+      fetchContactConfig();
     } else if (['privacy', 'shipping', 'terms', 'cancellation', 'return'].includes(page)) {
       const fetchLegalConfig = async () => {
         try {
@@ -128,18 +145,35 @@ If you receive a damaged product or the wrong item:
   if (page === 'about') {
     return (
       <div className="max-w-5xl mx-auto py-12 px-4 space-y-16">
+        {aboutConfig.banner && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full relative h-[300px] md:h-[450px] rounded-[3rem] overflow-hidden shadow-2xl mb-12 group"
+          >
+            <img src={aboutConfig.banner} alt="About Ruhani Souq" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
+            <div className="absolute inset-0 bg-gradient-to-t from-brand-green-900/80 via-transparent to-transparent flex items-end justify-center p-8 md:p-12">
+              <h1 className="text-4xl md:text-7xl font-serif text-white text-center leading-tight">
+                About The RM Souq
+              </h1>
+            </div>
+          </motion.div>
+        )}
+
         {/* About Section */}
         <motion.section 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center max-w-3xl mx-auto space-y-6"
         >
+          {!aboutConfig.banner && (
+            <h1 className="text-4xl md:text-5xl font-serif text-brand-green-900 leading-tight">
+              About The RM Souq
+            </h1>
+          )}
           <div className="inline-block bg-brand-sand-100 text-brand-green-900 px-4 py-1.5 rounded-full text-sm font-bold tracking-widest uppercase mb-2 border border-brand-sand-200">
             Our Vision
           </div>
-          <h1 className="text-4xl md:text-5xl font-serif text-brand-green-900 leading-tight">
-            About The RM Souq
-          </h1>
           <p className="text-lg text-gray-600 leading-relaxed">
             {aboutConfig.visionText}
           </p>
@@ -280,6 +314,49 @@ If you receive a damaged product or the wrong item:
     );
   }
 
+  if (page === 'contact') {
+    return (
+      <div className="max-w-5xl mx-auto py-12 px-4 space-y-16">
+        {contactConfig.banner && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full relative h-[300px] md:h-[450px] rounded-[3rem] overflow-hidden shadow-2xl mb-12 group"
+          >
+            <img src={contactConfig.banner} alt="Contact Ruhani Souq" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
+            <div className="absolute inset-0 bg-gradient-to-t from-brand-green-900/80 via-transparent to-transparent flex items-end justify-center p-8 md:p-12">
+              <h1 className="text-4xl md:text-7xl font-serif text-white text-center leading-tight">
+                Contact Us
+              </h1>
+            </div>
+          </motion.div>
+        )}
+
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="text-center max-w-3xl mx-auto space-y-6 mb-16"
+        >
+          {!contactConfig.banner && (
+            <h1 className="text-4xl md:text-5xl font-serif text-brand-green-900 leading-tight mb-8">
+              Contact Us
+            </h1>
+          )}
+          <h2 className="text-4xl md:text-5xl font-serif text-brand-green-900 leading-tight">
+            We're here to help!
+          </h2>
+          <p className="text-lg text-gray-600 leading-relaxed font-medium">
+            For any inquiries, or feedback regarding our range of supplements, please don't hesitate to get in touch. Our dedicated team is committed to providing you with the best possible service. Reach out via email or our website contact form, and let us assist you.
+          </p>
+        </motion.div>
+        
+        <ContactSection />
+      </div>
+    );
+  }
+
+  // Legal Pages
   if (['privacy', 'shipping', 'terms', 'cancellation', 'return'].includes(page)) {
     let title = '';
     let content = '';
@@ -317,6 +394,6 @@ If you receive a damaged product or the wrong item:
     );
   }
 
-  // Contact Page View
-  return <ContactSection />;
+  // Default fallback
+  return null;
 }

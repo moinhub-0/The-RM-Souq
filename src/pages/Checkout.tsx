@@ -7,6 +7,7 @@ import { ShoppingBag, MapPin, Phone, Mail, User as UserIcon, Tag, X } from 'luci
 import { collection, addDoc, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { motion } from 'motion/react';
+import { ProductRating } from '../components/ProductRating';
 
 export default function Checkout() {
   const { user, profile, loading, updateProfile } = useAuth();
@@ -22,7 +23,8 @@ export default function Checkout() {
     city: '',
     state: '',
     district: '',
-    fullAddress: ''
+    fullAddress: '',
+    giftMessage: '',
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -30,6 +32,7 @@ export default function Checkout() {
   const [pincodeError, setPincodeError] = useState('');
   const [isValidatingPincode, setIsValidatingPincode] = useState(false);
 
+  const GIFT_WRAP_CHARGE = 20;
   // Shipping Calculation State
   const shippingChargeRange = "₹5 - ₹30";
 
@@ -47,7 +50,7 @@ export default function Checkout() {
     return appliedCoupon.discount;
   };
 
-  const finalPrice = totalPrice - calculateDiscount();
+  const finalPrice = totalPrice - calculateDiscount() + (isGift ? GIFT_WRAP_CHARGE : 0);
 
   const handleApplyCoupon = async () => {
     if (!couponCode) return;
@@ -124,7 +127,8 @@ export default function Checkout() {
             setFormData(prev => ({
               ...prev,
               district: postOffice.District,
-              state: postOffice.State
+              state: postOffice.State,
+              city: prev.city || postOffice.Block || postOffice.District
             }));
           } else {
             setPincodeError('Invalid Pincode for India');
@@ -161,6 +165,7 @@ export default function Checkout() {
         district: profile.district || '',
         state: profile.state || '',
         fullAddress: profile.fullAddress || '',
+        giftMessage: '',
       });
     }
   }, [profile]);
@@ -187,7 +192,8 @@ export default function Checkout() {
     setIsSubmitting(true);
     try {
       // 1. Save Address back to profile
-      await updateProfile(formData);
+      const { giftMessage, ...addressToSave } = formData;
+      await updateProfile(addressToSave);
 
       // 2. Save order to Firebase
       const newOrder = {
@@ -200,6 +206,8 @@ export default function Checkout() {
         totalPrice: finalPrice,
         shippingChargeEstimate: shippingChargeRange,
         discountApplied: calculateDiscount(),
+        giftWrapPrice: isGift ? GIFT_WRAP_CHARGE : 0,
+        giftMessage: isGift ? formData.giftMessage : null,
         couponUsed: appliedCoupon?.code || null,
         status: 'pending',
         createdAt: Date.now(),
@@ -223,14 +231,14 @@ export default function Checkout() {
       const waNumber = settings.phoneNumber;
       const itemListText = items.map(i => `- ${i.quantity}x ${i.name} (\u20B9${i.price * i.quantity})`).join('\n');
       
-      const giftMessage = isGift ? "🎁 *THIS IS A GIFT ORDER*\n*Payment Method requested:* UPI Only (No COD for gifts)\n\n" : "";
+      const giftMessageText = isGift ? `🎁 *GIFT ORDER*\n*Message:* ${formData.giftMessage || 'No message'}\n*Packaging Charge:* \u20B9${GIFT_WRAP_CHARGE}\n*Payment Method requested:* UPI Only (No COD for gifts)\n\n` : "";
 
       const message = `*New Order: The RM Souq* \ud83d\uded2
 
-${giftMessage}*Order Summary:*
+${giftMessageText}*Order Summary:*
 ${itemListText}
 ${appliedCoupon ? `*Discount (${appliedCoupon.code}):* -\u20B9${calculateDiscount()}\n` : ''}*Shipping Charge:* ${shippingChargeRange} (To be confirmed)
-*Total (Excl. Shipping):* \u20B9${finalPrice}
+${isGift ? `*Gift Packaging:* +\u20B9${GIFT_WRAP_CHARGE}\n` : ''}*Total (Excl. Shipping):* \u20B9${finalPrice}
 
 *Customer Details:*
 Name: ${formData.name}
@@ -305,6 +313,20 @@ Please confirm my order and share available payment methods.`;
               </div>
 
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Pincode (Autofills City/State)</label>
+                <div className="relative w-full sm:w-1/2">
+                   <Tag size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input required name="pincode" value={formData.pincode} onChange={handleInputChange} type="text" maxLength={6} className={`pl-10 w-full p-3 bg-white border ${pincodeError ? 'border-red-500' : 'border-brand-sand-200'} rounded-xl focus:ring-2 focus:ring-brand-gold-400 outline-none`} placeholder="400001" />
+                  {isValidatingPincode && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-brand-gold-500 border-t-transparent"></div>
+                    </div>
+                  )}
+                </div>
+                {pincodeError && <p className="text-xs text-red-500 mt-1">{pincodeError}</p>}
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Full Address (Street, House No, Locality)</label>
                 <textarea required name="fullAddress" value={formData.fullAddress} onChange={handleInputChange} rows={3} className="w-full p-3 bg-white border border-brand-sand-200 rounded-xl focus:ring-2 focus:ring-brand-gold-400 outline-none resize-none" placeholder="123 Halal Market Road..." />
               </div>
@@ -323,15 +345,6 @@ Please confirm my order and share available payment methods.`;
                   <input required name="state" value={formData.state} onChange={handleInputChange} type="text" className="w-full p-3 bg-white border border-brand-sand-200 rounded-xl focus:ring-2 focus:ring-brand-gold-400 outline-none" placeholder="Maharashtra" />
                 </div>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Pincode</label>
-                <div className="relative w-full sm:w-1/2">
-                  <input required name="pincode" value={formData.pincode} onChange={handleInputChange} type="text" maxLength={6} className={`w-full p-3 bg-white border ${pincodeError ? 'border-red-500' : 'border-brand-sand-200'} rounded-xl focus:ring-2 focus:ring-brand-gold-400 outline-none`} placeholder="400001" />
-                </div>
-                {isValidatingPincode && <p className="text-xs text-blue-600 mt-1">Validating pincode...</p>}
-                {pincodeError && <p className="text-xs text-red-500 mt-1">{pincodeError}</p>}
-              </div>
             </div>
           </form>
         </div>
@@ -349,9 +362,20 @@ Please confirm my order and share available payment methods.`;
                   <img src={item.imageUrl || undefined} alt={item.name} className="w-16 h-16 rounded-lg object-cover" />
                   <div className="flex-1">
                     <h4 className="text-sm font-medium text-brand-green-900">{item.name}</h4>
-                    <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                    <p className="text-xs text-gray-500 mb-1">Qty: {item.quantity}</p>
+                    <ProductRating productId={item.id} />
                   </div>
-                  <div className="font-medium text-brand-green-700">â¹. {(item.price * item.quantity).toLocaleString()}</div>
+                  <div className="text-right flex flex-col items-end justify-center">
+                    <div className="font-bold text-brand-green-900">₹{(item.price * item.quantity).toLocaleString()}</div>
+                    {item.mrp && item.mrp > item.price && (
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-[11px] font-medium text-gray-400 line-through">₹{(item.mrp * item.quantity).toLocaleString()}</span>
+                        <span className="text-[9px] uppercase tracking-wider font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-100">
+                          Save {Math.round(((item.mrp - item.price) / item.mrp) * 100)}%
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -392,18 +416,39 @@ Please confirm my order and share available payment methods.`;
                 {couponError && <p className="text-xs text-red-500 mt-1">{couponError}</p>}
               </div>
 
+              <div className="flex justify-between items-center text-sm text-gray-600 mb-2">
+                <span>Subtotal</span>
+                <span>₹ {totalPrice.toLocaleString()}</span>
+              </div>
+              
+              {(() => {
+                const totalMrp = items.reduce((acc, item) => acc + ((item.mrp || item.price) * item.quantity), 0);
+                const totalMrpSavings = totalMrp - totalPrice;
+                if (totalMrpSavings > 0) {
+                  return (
+                    <div className="flex justify-between items-center text-sm text-green-600 font-medium mb-2">
+                      <span>Store Discount (MRP Savings)</span>
+                      <span>-₹ {totalMrpSavings.toLocaleString()}</span>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
               {appliedCoupon && (
-                <div className="flex justify-between items-center text-sm text-gray-600 mb-2">
-                  <span>Subtotal</span>
-                  <span>₹ {totalPrice.toLocaleString()}</span>
+                <div className="flex justify-between items-center text-sm text-green-600 font-medium mb-2">
+                  <span>Additional Discount ({appliedCoupon.code})</span>
+                  <span>-₹ {calculateDiscount().toLocaleString()}</span>
                 </div>
               )}
-              {appliedCoupon && (
-                <div className="flex justify-between items-center text-sm text-green-600 mb-2">
-                  <span>Discount ({appliedCoupon.code})</span>
-                  <span>- ₹ {calculateDiscount().toLocaleString()}</span>
+
+              {isGift && (
+                <div className="flex justify-between items-center text-sm text-brand-gold-700 font-medium mb-2">
+                  <span>Gift Packaging</span>
+                  <span>+₹ {GIFT_WRAP_CHARGE.toLocaleString()}</span>
                 </div>
               )}
+
               <div className="flex justify-between items-center text-sm text-brand-green-700 mb-2">
                 <span>Shipping Charge</span>
                 <span className="italic font-medium">{shippingChargeRange}</span>
@@ -438,10 +483,25 @@ Please confirm my order and share available payment methods.`;
                     <span className="text-sm text-gray-600 block mt-2 leading-relaxed">
                       We'll package your items elegantly in our premium gift boxes, perfect for surprising your loved ones.
                       {isGift && (
-                        <span className="block mt-3 text-brand-gold-800 bg-brand-gold-200/50 p-3 rounded-lg border border-brand-gold-200/50 font-medium">
-                          <span className="font-bold uppercase tracking-widest text-[10px] block opacity-70 mb-1">Important</span>
-                          Payment must be done via UPI for all gift orders (No Cash on Delivery).
-                        </span>
+                        <div className="mt-3 space-y-3">
+                          <div className="text-brand-gold-800 bg-brand-gold-200/50 p-3 rounded-lg border border-brand-gold-200/50 font-medium">
+                            <span className="font-bold uppercase tracking-widest text-[10px] block opacity-70 mb-1">Important</span>
+                            Payment must be done via UPI for all gift orders (No Cash on Delivery).
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <label className="block text-[10px] font-bold text-brand-gold-700 uppercase tracking-wider">Gift Message (Optional)</label>
+                            <textarea 
+                              name="giftMessage"
+                              value={formData.giftMessage}
+                              onChange={handleInputChange}
+                              placeholder="Write a sweet note for your loved one..."
+                              className="w-full p-3 text-sm bg-white border border-brand-gold-200 rounded-xl focus:ring-2 focus:ring-brand-gold-400 outline-none resize-none"
+                              rows={2}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                        </div>
                       )}
                     </span>
                   </div>

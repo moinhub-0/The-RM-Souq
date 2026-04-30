@@ -1,10 +1,52 @@
-import React from 'react';
-import { Mail, Phone, MapPin, Facebook, Instagram, Youtube } from 'lucide-react';
+import React, { useState } from 'react';
+import { Mail, Phone, MapPin, Facebook, Instagram, Youtube, CheckCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useSettings } from '../context/SettingsContext';
+import { addDoc, collection } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 
 export default function ContactSection() {
   const { settings } = useSettings();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+    
+    try {
+      // 1. Submit to Netlify Forms (which will send the email notification)
+      await fetch("/", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams(formData as any).toString()
+      });
+
+      // 2. Save to Firestore for the Admin Dashboard
+      try {
+        await addDoc(collection(db, 'contact_messages'), {
+          ...data,
+          createdAt: Date.now(),
+          status: 'new'
+        });
+      } catch (dbErr) {
+        // Silently fail DB insert if rules are tight, as long as Netlify got it
+        console.warn("Could not save to database", dbErr);
+      }
+      
+      setSubmitted(true);
+      form.reset();
+    } catch (error) {
+      console.error(error);
+      alert("There was an error sending your message. Please email us directly.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <motion.div 
@@ -87,39 +129,54 @@ export default function ContactSection() {
 
         {/* Right Side: Modern Contact Form */}
         <div className="bg-[#0d2b22] p-8 md:p-10 text-white shadow-2xl w-full" style={{ borderRadius: '25px' }}>
-          <form name="contact-form" method="POST" data-netlify="true" className="space-y-6">
-            <input type="hidden" name="form-name" value="contact-form" />
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label htmlFor="firstName" className="text-sm font-medium text-gray-300">First Name</label>
-                <input type="text" id="firstName" name="firstName" required className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2ecc71] focus:border-transparent transition-all" placeholder="John" />
+          {submitted ? (
+            <div className="flex flex-col items-center justify-center text-center space-y-4 h-full py-12">
+              <div className="w-16 h-16 bg-[#2ecc71]/20 rounded-full flex items-center justify-center text-[#2ecc71]">
+                <CheckCircle size={32} />
               </div>
-              <div className="space-y-2">
-                <label htmlFor="lastName" className="text-sm font-medium text-gray-300">Last Name</label>
-                <input type="text" id="lastName" name="lastName" required className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2ecc71] focus:border-transparent transition-all" placeholder="Doe" />
+              <h3 className="text-2xl font-bold text-white">Message Sent!</h3>
+              <p className="text-gray-300">Thank you for reaching out. We will get back to you shortly.</p>
+              <button 
+                onClick={() => setSubmitted(false)}
+                className="mt-6 px-6 py-2 border border-[#2ecc71] text-[#2ecc71] rounded-xl hover:bg-[#2ecc71] hover:text-[#0d2b22] transition-colors font-medium"
+              >
+                Send Another Message
+              </button>
+            </div>
+          ) : (
+            <form name="contact-form" method="POST" data-netlify="true" onSubmit={handleSubmit} className="space-y-6">
+              <input type="hidden" name="form-name" value="contact-form" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label htmlFor="firstName" className="text-sm font-medium text-gray-300">First Name</label>
+                  <input type="text" id="firstName" name="firstName" required className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2ecc71] focus:border-transparent transition-all" placeholder="John" />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="lastName" className="text-sm font-medium text-gray-300">Last Name</label>
+                  <input type="text" id="lastName" name="lastName" required className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2ecc71] focus:border-transparent transition-all" placeholder="Doe" />
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <label htmlFor="phone" className="text-sm font-medium text-gray-300">Phone Number</label>
-              <input type="tel" id="phone" name="phone" required className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2ecc71] focus:border-transparent transition-all" placeholder="+91 00000 00000" />
-            </div>
+              <div className="space-y-2">
+                <label htmlFor="phone" className="text-sm font-medium text-gray-300">Phone Number</label>
+                <input type="tel" id="phone" name="phone" required className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2ecc71] focus:border-transparent transition-all" placeholder="+91 00000 00000" />
+              </div>
 
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium text-gray-300">Email Address</label>
-              <input type="email" id="email" name="email" required className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2ecc71] focus:border-transparent transition-all" placeholder="name@example.com" />
-            </div>
+              <div className="space-y-2">
+                <label htmlFor="email" className="text-sm font-medium text-gray-300">Email Address</label>
+                <input type="email" id="email" name="email" required className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2ecc71] focus:border-transparent transition-all" placeholder="name@example.com" />
+              </div>
 
-            <div className="space-y-2">
-              <label htmlFor="message" className="text-sm font-medium text-gray-300">Message / Comments</label>
-              <textarea id="message" name="message" rows={4} required className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2ecc71] focus:border-transparent transition-all resize-none" placeholder="How can we help you?"></textarea>
-            </div>
+              <div className="space-y-2">
+                <label htmlFor="message" className="text-sm font-medium text-gray-300">Message / Comments</label>
+                <textarea id="message" name="message" rows={4} required className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2ecc71] focus:border-transparent transition-all resize-none" placeholder="How can we help you?"></textarea>
+              </div>
 
-            <button type="submit" className="w-full bg-[#2ecc71] hover:bg-[#27ae60] text-[#0d2b22] font-bold text-lg py-4 rounded-xl transition-colors shadow-lg mt-4">
-              Send Message
-            </button>
-          </form>
+              <button type="submit" disabled={isSubmitting} className="w-full bg-[#2ecc71] hover:bg-[#27ae60] disabled:opacity-50 text-[#0d2b22] font-bold text-lg py-4 rounded-xl transition-colors shadow-lg mt-4 flex items-center justify-center gap-2">
+                {isSubmitting ? 'Sending...' : 'Send Message'}
+              </button>
+            </form>
+          )}
         </div>
 
       </div>
