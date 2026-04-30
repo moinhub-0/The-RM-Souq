@@ -215,7 +215,7 @@ export default function Checkout() {
             usageCount: (appliedCoupon.usageCount || 0) + 1
           });
         } catch (couponErr) {
-          handleFirestoreError(couponErr, OperationType.UPDATE, `coupons/${appliedCoupon.id}`);
+          console.warn("Could not update coupon usage count (likely due to permissions):", couponErr);
         }
       }
 

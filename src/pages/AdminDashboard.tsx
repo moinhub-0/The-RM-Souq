@@ -6,7 +6,7 @@ import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { useProducts, Product } from '../contexts/ProductContext';
 import { useSettings } from '../context/SettingsContext';
 import { LayoutDashboard, Plus, Trash2, Edit, Save, Settings, Phone, Mail, MapPin, Facebook, Instagram, Youtube } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const processFiles = (files: FileList | null, callback: (urls: string[]) => void, maxWidth = 800, maxHeight = 800) => {
   if (!files || files.length === 0) return;
@@ -62,6 +62,7 @@ export default function AdminDashboard() {
   
   // Analytics State
   const [orders, setOrders] = useState<any[]>([]);
+  const [orderStatusFilter, setOrderStatusFilter] = useState<'all' | 'pending' | 'completed' | 'cancelled'>('all');
   const [customers, setCustomers] = useState<any[]>([]);
   const [visits, setVisits] = useState<any[]>([]);
   const [coupons, setCoupons] = useState<any[]>([]);
@@ -669,37 +670,40 @@ If you receive a damaged product or the wrong item:
             </button>
           </div>
           
-          <div className="bg-white border border-brand-sand-200 shadow-sm rounded-2xl p-6">
-            <h3 className="text-xl font-serif text-brand-green-900 mb-6 capitalize">{activeChartBox.replace(/([A-Z])/g, ' $1').trim()} (Last 7 Days)</h3>
-            <div className="w-full text-sm">
-              <ResponsiveContainer width="100%" height={320}>
-                <LineChart data={chartData} key={activeChartBox}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                  <XAxis dataKey="date" stroke="#6b7280" />
-                  <YAxis 
-                    stroke="#6b7280" 
-                    width={activeChartBox === 'revenue' ? 80 : 40} 
-                    allowDecimals={false}
-                    tickFormatter={(value: any) => activeChartBox === 'revenue' ? `₹${value.toLocaleString()}` : value}
-                  />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb' }}
-                    formatter={(value: number) => {
-                      if (activeChartBox === 'revenue') return `₹${value.toLocaleString()}`;
-                      return value;
-                    }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey={activeChartBox} 
-                    stroke="#14532D" 
-                    strokeWidth={3}
-                    dot={{ fill: '#fbbf24', strokeWidth: 2, r: 4 }}
-                    activeDot={{ r: 6, fill: '#fbbf24', stroke: '#14532D' }}
-                    isAnimationActive={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="bg-white border border-brand-sand-200 shadow-sm rounded-2xl p-6">
+              <h3 className="text-xl font-serif text-brand-green-900 mb-6 font-bold">Daily Orders & Revenue (Last 7 Days)</h3>
+              <div className="w-full text-sm">
+                <ResponsiveContainer width="100%" height={320}>
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                    <XAxis dataKey="date" stroke="#6b7280" />
+                    <YAxis yAxisId="left" stroke="#14532D" allowDecimals={false} width={40} />
+                    <YAxis yAxisId="right" orientation="right" stroke="#fbbf24" allowDecimals={false} width={80} tickFormatter={(val) => '₹'+val.toLocaleString()} />
+                    <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb' }} />
+                    <Legend />
+                    <Line yAxisId="left" type="monotone" dataKey="orders" name="Orders" stroke="#14532D" strokeWidth={3} dot={{ fill: '#14532D', r: 4 }} activeDot={{ r: 6 }} isAnimationActive={false} />
+                    <Line yAxisId="right" type="monotone" dataKey="revenue" name="Revenue" stroke="#fbbf24" strokeWidth={3} dot={{ fill: '#fbbf24', r: 4 }} activeDot={{ r: 6 }} isAnimationActive={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="bg-white border border-brand-sand-200 shadow-sm rounded-2xl p-6">
+              <h3 className="text-xl font-serif text-brand-green-900 mb-6 font-bold">Website Visits (Last 7 Days)</h3>
+              <div className="w-full text-sm">
+                <ResponsiveContainer width="100%" height={320}>
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                    <XAxis dataKey="date" stroke="#6b7280" />
+                    <YAxis stroke="#6b7280" allowDecimals={false} />
+                    <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb' }} />
+                    <Legend />
+                    <Line type="monotone" dataKey="totalVisits" name="Total Visits" stroke="#3b82f6" strokeWidth={3} dot={{ fill: '#3b82f6', r: 4 }} activeDot={{ r: 6 }} isAnimationActive={false} />
+                    <Line type="monotone" dataKey="newVisits" name="New Visits" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', r: 4 }} activeDot={{ r: 6 }} isAnimationActive={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         </div>
@@ -898,79 +902,108 @@ If you receive a damaged product or the wrong item:
       )}
 
       {activeTab === 'orders' && (
-        <div className="space-y-4">
-          {[...orders].sort((a,b) => b.createdAt - a.createdAt).slice(0, 20).map(order => (
-            <div key={order.id} className="bg-white border rounded-2xl p-6 flex flex-col md:flex-row justify-between md:items-center gap-4 hover:border-brand-sand-300 transition-colors">
-              <div>
-                <p className="font-medium text-brand-green-900 flex items-center gap-2">
-                  {order.userName} - ₹{order.totalPrice?.toLocaleString()}
-                  {order.shippingChargeEstimate ? (
-                    <span className="text-xs font-normal text-gray-500 whitespace-nowrap">(Shipping: {order.shippingChargeEstimate})</span>
-                  ) : order.shippingCharge > 0 ? (
-                    <span className="text-xs font-normal text-gray-500 whitespace-nowrap">(Incl. ₹{order.shippingCharge} shipping)</span>
-                  ) : null}
-                  {order.isGift && <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded-full font-bold">🎁 GIFT ORDER</span>}
-                </p>
-                <p className="text-xs text-gray-400 mt-1">{new Date(order.createdAt).toLocaleString()} | Phone: {order.phone}</p>
-                <div className="mt-3 space-y-1">
-                  {order.items?.map((item: any, idx: number) => (
-                    <p key={idx} className="text-sm text-gray-700 flex items-center gap-2">
-                      <span className="w-6 h-6 bg-brand-sand-100 text-brand-green-900 rounded-md flex items-center justify-center text-xs font-bold">{item.quantity}x</span>
-                      {item.name}
-                    </p>
-                  ))}
-                </div>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center text-sm text-gray-600">
-                <span className="bg-brand-sand-100 px-3 py-1 rounded-full whitespace-nowrap">{order.items?.length || 0} items</span>
-                
-                <div className="flex items-center gap-2">
-                  <span className={`px-3 py-1 rounded-full uppercase text-xs font-bold tracking-wider ${
-                    order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                    order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {order.status}
-                  </span>
-                  
-                  {order.status === 'pending' && (
-                    <div className="flex gap-2 ml-2">
-                       <button
-                         onClick={async () => {
-                           try {
-                             await updateDoc(doc(db, 'orders', order.id), { status: 'completed' });
-                             setOrders(orders.map(o => o.id === order.id ? { ...o, status: 'completed' } : o));
-                           } catch (e) { 
-                             handleFirestoreError(e, OperationType.UPDATE, `orders/${order.id}`);
-                             alert('Failed to update status'); 
-                           }
-                         }}
-                         className="px-3 py-1 text-xs font-medium bg-green-50 text-green-700 hover:bg-green-100 rounded-lg transition-colors border border-green-200"
-                       >
-                         Complete
-                       </button>
-                       <button
-                         onClick={async () => {
-                           if(window.confirm('Are you sure you want to cancel this order?')) {
-                             try {
-                               await updateDoc(doc(db, 'orders', order.id), { status: 'cancelled' });
-                               setOrders(orders.map(o => o.id === order.id ? { ...o, status: 'cancelled' } : o));
-                             } catch (e) { 
-                              handleFirestoreError(e, OperationType.UPDATE, `orders/${order.id}`);
-                              alert('Failed to update status'); 
-                            }
-                           }
-                         }}
-                         className="px-3 py-1 text-xs font-medium bg-red-50 text-red-700 hover:bg-red-100 rounded-lg transition-colors border border-red-200"
-                       >
-                         Cancel
-                       </button>
-                    </div>
-                  )}
-                </div>
-              </div>
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <h3 className="text-xl font-bold text-brand-green-900">Recent Orders</h3>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500 font-medium">Filter by Status:</span>
+              <select 
+                value={orderStatusFilter} 
+                onChange={e => setOrderStatusFilter(e.target.value as any)}
+                className="bg-white border border-brand-sand-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold-400 font-medium"
+              >
+                <option value="all">All Orders</option>
+                <option value="pending">Pending</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
             </div>
-          ))}
+          </div>
+          
+          <div className="space-y-4">
+            {[...orders]
+              .filter(o => orderStatusFilter === 'all' || o.status === orderStatusFilter || (!o.status && orderStatusFilter === 'pending'))
+              .sort((a,b) => b.createdAt - a.createdAt)
+              .map(order => (
+              <div key={order.id} className="bg-white border rounded-2xl p-6 flex flex-col md:flex-row justify-between md:items-center gap-4 hover:border-brand-sand-300 transition-colors">
+                <div>
+                  <p className="font-medium text-brand-green-900 flex items-center gap-2">
+                    {order.userName} - ₹{order.totalPrice?.toLocaleString()}
+                    {order.shippingChargeEstimate ? (
+                      <span className="text-xs font-normal text-gray-500 whitespace-nowrap">(Shipping: {order.shippingChargeEstimate})</span>
+                    ) : order.shippingCharge > 0 ? (
+                      <span className="text-xs font-normal text-gray-500 whitespace-nowrap">(Incl. ₹{order.shippingCharge} shipping)</span>
+                    ) : null}
+                    {order.isGift && <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded-full font-bold">🎁 GIFT ORDER</span>}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">{new Date(order.createdAt).toLocaleString()} | Phone: {order.phone} | Address: {order.address || 'N/A'}</p>
+                  <div className="mt-3 space-y-1 bg-brand-sand-50 p-3 rounded-xl border border-brand-sand-100">
+                    <p className="text-xs font-medium text-gray-500 mb-2">Order Items:</p>
+                    {order.items?.map((item: any, idx: number) => (
+                      <p key={idx} className="text-sm text-gray-700 flex items-center gap-2">
+                        <span className="w-6 h-6 bg-white text-brand-green-900 border border-brand-sand-200 rounded-md flex items-center justify-center text-xs font-bold">{item.quantity}x</span>
+                        {item.name}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center text-sm text-gray-600">
+                  <span className="bg-brand-sand-100 px-3 py-1 rounded-full whitespace-nowrap font-medium text-brand-green-900">{order.items?.length || 0} items</span>
+                  
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                    <span className={`px-3 py-1 rounded-full uppercase text-xs font-bold tracking-wider ${
+                      order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                      order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {order.status || 'pending'}
+                    </span>
+                    
+                    {(!order.status || order.status === 'pending') && (
+                      <div className="flex gap-2 sm:ml-2 mt-2 sm:mt-0">
+                         <button
+                           onClick={async () => {
+                             try {
+                               await updateDoc(doc(db, 'orders', order.id), { status: 'completed' });
+                               setOrders(orders.map(o => o.id === order.id ? { ...o, status: 'completed' } : o));
+                             } catch (e) { 
+                               handleFirestoreError(e, OperationType.UPDATE, `orders/${order.id}`);
+                               alert('Failed to update status'); 
+                             }
+                           }}
+                           className="px-3 py-1.5 text-xs font-bold bg-green-500 text-white hover:bg-green-600 rounded-lg transition-all shadow-sm"
+                         >
+                           Complete
+                         </button>
+                         <button
+                           onClick={async () => {
+                             if(window.confirm('Are you sure you want to cancel this order?')) {
+                               try {
+                                 await updateDoc(doc(db, 'orders', order.id), { status: 'cancelled' });
+                                 setOrders(orders.map(o => o.id === order.id ? { ...o, status: 'cancelled' } : o));
+                               } catch (e) { 
+                                 handleFirestoreError(e, OperationType.UPDATE, `orders/${order.id}`);
+                                 alert('Failed to update status'); 
+                               }
+                             }
+                           }}
+                           className="px-3 py-1.5 text-xs font-bold bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors border border-red-200"
+                         >
+                           Cancel
+                         </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+            
+            {orders.filter(o => orderStatusFilter === 'all' || o.status === orderStatusFilter || (!o.status && orderStatusFilter === 'pending')).length === 0 && (
+              <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-gray-300">
+                <p className="text-gray-500 font-medium">No orders found for the selected status.</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
       {activeTab === 'coupons' && (
