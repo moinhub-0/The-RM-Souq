@@ -45,16 +45,9 @@ export default function Navbar() {
           <div className="flex items-center gap-4">
             <SidebarMenu />
             
-            <Link to="/" className="flex items-center gap-3 ml-2 group">
-              <div className="bg-white rounded-xl p-1 shadow-sm group-hover:shadow-md transition-shadow">
-                 <img src="/logo.png" alt="The RM Souq Logo" className="h-12 w-auto object-contain rounded-lg" onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                 }} />
-              </div>
-              <div className="flex flex-col">
-                <span className="font-serif text-xl sm:text-2xl font-semibold tracking-wide text-brand-gold-400">The RM Souq</span>
-                <span className="text-[10px] tracking-widest uppercase opacity-80 text-brand-sand-100">Sunnah & Halal</span>
-              </div>
+            <Link to="/" className="flex flex-col ml-2 group">
+              <span className="font-serif text-xl sm:text-2xl font-semibold tracking-wide text-brand-gold-400 group-hover:text-brand-gold-300 transition-colors">The RM Souq</span>
+              <span className="text-[10px] tracking-widest uppercase opacity-80 text-brand-sand-100">Sunnah & Halal</span>
             </Link>
           </div>
 

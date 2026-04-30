@@ -24,8 +24,8 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
           <div>
-            <Link to="/" className="bg-white p-4 rounded-2xl inline-block mb-6 shadow-sm hover:shadow-md transition-all group">
-              <img src="/logo.png" alt="Ruhani Logo" className="h-14 w-auto object-contain group-hover:scale-105 transition-transform" />
+            <Link to="/" className="inline-block mb-6 group">
+              <h3 className="font-serif text-2xl font-bold text-brand-gold-400 group-hover:text-brand-gold-300 transition-colors tracking-wide">The RM Souq</h3>
             </Link>
             <p className="text-base font-medium opacity-90 max-w-xs leading-relaxed mb-8">
               Setting a higher standard in purity, transparency, and quality for your health and wellness.
