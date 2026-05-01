@@ -234,19 +234,31 @@ export default function ProductDetails() {
             </div>
             
             <div className="flex flex-wrap items-center gap-6">
-              <div className="flex items-baseline gap-4">
-                <span className="text-4xl font-bold text-brand-green-800">₹{product.price.toLocaleString()}</span>
+              <div className="bg-brand-sand-50/50 border border-brand-sand-100 rounded-2xl p-6 flex flex-col gap-4">
+                <div className="flex flex-col gap-1">
+                  <span className="text-[10px] uppercase font-black tracking-widest text-brand-green-800 opacity-60">Offer Price</span>
+                  <span className="text-5xl font-bold text-brand-green-900">₹{product.price.toLocaleString()}</span>
+                </div>
+                
                 {product.mrp && product.mrp > product.price && (
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl text-gray-400 line-through font-medium">₹{product.mrp.toLocaleString()}</span>
-                    <span className="bg-red-600 text-white px-3 py-1 rounded-lg text-sm font-black tracking-widest shadow-sm">
-                      -{Math.round(((product.mrp - product.price) / product.mrp) * 100)}%
-                    </span>
+                  <div className="flex flex-col gap-1 border-l-2 border-brand-sand-200 pl-4">
+                    <div className="flex items-center gap-2">
+                       <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">MRP:</span>
+                       <span className="text-xl text-gray-400 line-through font-medium">₹{product.mrp.toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="bg-red-600 text-white px-2 py-0.5 rounded text-[10px] font-black tracking-widest shadow-sm uppercase">
+                        Save {Math.round(((product.mrp - product.price) / product.mrp) * 100)}%
+                      </span>
+                      <span className="text-xs font-bold text-red-600 uppercase tracking-wider">
+                        (Save ₹{(product.mrp - product.price).toLocaleString()} off)
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
               {reviews.length > 0 && (
-                <div className="flex items-center gap-2 text-yellow-500 bg-yellow-50 ring-1 ring-yellow-200 px-4 py-1.5 rounded-full text-sm font-bold shadow-sm">
+                <div className="flex items-center gap-2 text-yellow-500 bg-yellow-50 ring-1 ring-yellow-200 px-4 py-1.5 rounded-full text-sm font-bold shadow-sm h-fit">
                   <Star size={16} fill="currentColor" />
                   {averageRating} <span className="text-gray-400 font-medium ml-1">({reviews.length} reviews)</span>
                 </div>

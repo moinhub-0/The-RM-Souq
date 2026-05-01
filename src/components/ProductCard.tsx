@@ -83,15 +83,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <div className="mt-auto pt-3 flex items-center justify-between gap-3 border-t border-brand-sand-100">
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] uppercase tracking-wider font-bold text-gray-400 w-full mb-0.5">Offer Price</span>
               <span className="font-bold text-lg text-brand-green-900 leading-none">₹{product.price.toLocaleString()}</span>
               {product.mrp && product.mrp > product.price && (
-                <span className="text-xs font-medium text-gray-400 line-through leading-none">₹{product.mrp.toLocaleString()}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-gray-300 font-bold">MRP:</span>
+                  <span className="text-[11px] font-medium text-gray-400 line-through leading-none">₹{product.mrp.toLocaleString()}</span>
+                </div>
               )}
             </div>
             {product.mrp && product.mrp > product.price && (
-              <span className="text-[9px] uppercase tracking-wider font-bold text-red-600 mt-1">
-                Save {Math.round(((product.mrp - product.price) / product.mrp) * 100)}%
-              </span>
+              <div className="flex items-center gap-1 mt-1">
+                <span className="text-[9px] uppercase tracking-wider font-black text-red-600 bg-red-50 px-1.5 py-0.5 rounded">
+                  Save {Math.round(((product.mrp - product.price) / product.mrp) * 100)}%
+                </span>
+              </div>
             )}
           </div>
           <button 

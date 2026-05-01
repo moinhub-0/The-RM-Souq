@@ -55,10 +55,17 @@ export default function Cart() {
                 <div>
                   <h3 className="text-lg font-medium text-brand-green-900">{item.name}</h3>
                   <div className="flex items-center gap-3">
-                    <div className="flex items-baseline gap-2 mt-1">
-                      <span className="text-brand-green-700 font-semibold">₹{item.price.toLocaleString()}</span>
+                    <div className="flex flex-col gap-1 mt-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] uppercase font-bold text-gray-400">Offer Price</span>
+                        <span className="text-brand-green-700 font-bold">₹{item.price.toLocaleString()}</span>
+                      </div>
                       {item.mrp && item.mrp > item.price && (
-                        <span className="text-xs text-gray-400 line-through">₹{item.mrp.toLocaleString()}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] uppercase font-bold text-gray-300">MRP:</span>
+                          <span className="text-xs text-gray-400 line-through">₹{item.mrp.toLocaleString()}</span>
+                          <span className="text-[9px] font-black text-red-500 bg-red-50 px-1 rounded">Save {Math.round(((item.mrp - item.price) / item.mrp) * 100)}%</span>
+                        </div>
                       )}
                     </div>
                     <ProductRating productId={item.id} className="mt-1 bg-brand-sand-50/50 px-1.5 py-0.5 rounded" />
@@ -89,17 +96,30 @@ export default function Cart() {
           <h3 className="text-xl mb-4 font-semibold">Order Summary</h3>
           <div className="space-y-3 text-sm text-gray-600 mb-6 border-b border-brand-sand-200 pb-6">
             <div className="flex justify-between">
-              <span>Subtotal</span>
-              <span className="font-semibold text-gray-900">â¹. {totalPrice.toLocaleString()}</span>
+              <span>Item Total (Offer Price)</span>
+              <span className="font-semibold text-gray-900">₹{totalPrice.toLocaleString()}</span>
             </div>
+            {(() => {
+              const totalMrp = items.reduce((acc, item) => acc + ((item.mrp || item.price) * item.quantity), 0);
+              const totalSavings = totalMrp - totalPrice;
+              if (totalSavings > 0) {
+                return (
+                  <div className="flex justify-between text-green-600 font-bold bg-green-50 px-3 py-2 rounded-lg border border-green-100">
+                    <span className="flex items-center gap-1">Store Savings</span>
+                    <span>-₹{totalSavings.toLocaleString()}</span>
+                  </div>
+                );
+              }
+              return null;
+            })()}
             <div className="flex justify-between">
               <span>Shipping</span>
               <span className="text-brand-green-600 font-medium">Calculated at checkout</span>
             </div>
           </div>
           <div className="flex justify-between text-lg font-semibold text-brand-green-900 mb-6">
-            <span>Total</span>
-            <span>â¹. {totalPrice.toLocaleString()}</span>
+            <span>Subtotal</span>
+            <span>₹{totalPrice.toLocaleString()}</span>
           </div>
           <button 
             onClick={() => navigate('/checkout')}

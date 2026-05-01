@@ -417,7 +417,7 @@ Please confirm my order and share available payment methods.`;
               </div>
 
               <div className="flex justify-between items-center text-sm text-gray-600 mb-2">
-                <span>Subtotal</span>
+                <span>Items Total (Offer Price)</span>
                 <span>₹ {totalPrice.toLocaleString()}</span>
               </div>
               
@@ -426,8 +426,8 @@ Please confirm my order and share available payment methods.`;
                 const totalMrpSavings = totalMrp - totalPrice;
                 if (totalMrpSavings > 0) {
                   return (
-                    <div className="flex justify-between items-center text-sm text-green-600 font-medium mb-2">
-                      <span>Store Discount (MRP Savings)</span>
+                    <div className="flex justify-between items-center text-xs text-green-600 font-bold bg-green-50 px-3 py-2 rounded-lg border border-green-100 mb-2">
+                      <span className="uppercase tracking-wider">Total Store Savings</span>
                       <span>-₹ {totalMrpSavings.toLocaleString()}</span>
                     </div>
                   );
