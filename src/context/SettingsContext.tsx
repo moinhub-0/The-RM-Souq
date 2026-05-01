@@ -9,6 +9,7 @@ interface ContactSettings {
   facebook?: string;
   instagram?: string;
   youtube?: string;
+  homePageBanner?: string;
 }
 
 interface SettingsContextType {
@@ -23,7 +24,8 @@ const defaultSettings: ContactSettings = {
   address: 'New Delhi, India',
   facebook: '',
   instagram: '',
-  youtube: ''
+  youtube: '',
+  homePageBanner: ''
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);

@@ -695,6 +695,45 @@ If you receive a damaged product or the wrong item:
               </div>
             </div>
 
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Home Page Banner (Hero Section)</label>
+              <div className="space-y-4">
+                {editSettings.homePageBanner ? (
+                  <div className="relative group max-w-md">
+                    <img src={editSettings.homePageBanner} alt="Home Page Banner" className="w-full h-32 object-cover rounded-xl border border-brand-sand-200" />
+                    <button 
+                      type="button"
+                      onClick={() => setEditSettings({...editSettings, homePageBanner: ''})}
+                      className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl pointer-events-none">
+                      <p className="text-white text-xs font-bold uppercase tracking-widest">Change Image</p>
+                    </div>
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={(e) => processFiles(e.target.files, (urls) => setEditSettings({...editSettings, homePageBanner: urls[0]}), 1600, 800)}
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                    />
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center hover:border-brand-gold-400 transition-colors cursor-pointer relative bg-brand-sand-50/50">
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={(e) => processFiles(e.target.files, (urls) => setEditSettings({...editSettings, homePageBanner: urls[0]}), 1600, 800)}
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                    />
+                    <Plus className="mx-auto text-gray-400 mb-2" size={32} />
+                    <p className="text-sm text-gray-500 font-medium tracking-tight">Upload Section Background</p>
+                    <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest font-black">Recommended: High Resolution (1600x800px)</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Facebook URL</label>

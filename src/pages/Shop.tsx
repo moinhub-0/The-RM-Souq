@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useProducts, Product } from '../contexts/ProductContext';
+import { useSettings } from '../context/SettingsContext';
 import { motion } from 'motion/react';
 import { ProductCard } from '../components/ProductCard';
 
@@ -10,6 +11,7 @@ export default function Shop() {
   const { addToCart } = useCart();
   const { user, profile, toggleWishlist, loginWithGoogle } = useAuth();
   const { products, loadingProducts } = useProducts();
+  const { settings } = useSettings();
   
   const featuredProducts = products.filter(p => p.isFeatured);
   const otherProducts = products.filter(p => !p.isFeatured);
@@ -32,7 +34,13 @@ export default function Shop() {
         transition={{ duration: 0.6 }}
         className="bg-brand-green-800 text-brand-sand-50 rounded-3xl p-6 sm:p-10 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center gap-8"
       >
-        <div className="absolute inset-0 opacity-10 bg-[url('https://images.unsplash.com/photo-1549673967-df509cacee8f?auto=format&fit=crop&w=1200&q=80')] bg-cover bg-center" />
+        <div 
+          className="absolute inset-0 opacity-20 bg-cover bg-center transition-all duration-700" 
+          style={{ 
+            backgroundImage: `url('${settings.homePageBanner || 'https://images.unsplash.com/photo-1549673967-df509cacee8f?auto=format&fit=crop&w=1200&q=80'}')`
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-brand-green-900/40 to-transparent z-0" />
         <div className="relative z-10 flex-1 space-y-4 text-center md:text-left">
           <motion.h1 
             initial={{ opacity: 0, x: -20 }}
