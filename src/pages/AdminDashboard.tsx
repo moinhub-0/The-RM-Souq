@@ -1309,6 +1309,22 @@ If you receive a damaged product or the wrong item:
                            </button>
                         </>
                       )}
+                      {order.status === 'shipped' && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              await updateDoc(doc(db, 'orders', order.id), { status: 'completed' });
+                              setOrders(orders.map(o => o.id === order.id ? { ...o, status: 'completed' } : o));
+                            } catch (e) {
+                              handleFirestoreError(e, OperationType.UPDATE, `orders/${order.id}`);
+                              alert('Failed to update status');
+                            }
+                          }}
+                          className="px-3 py-1 bg-green-50 text-green-600 border border-green-100 rounded-lg text-xs font-bold hover:bg-green-600 hover:text-white transition-all flex items-center gap-1"
+                        >
+                          <Check size={14} /> Delivered
+                        </button>
+                      )}
                       <button
                         onClick={async () => {
                           if(window.confirm('Are you sure you want to permanently delete this order? This action cannot be undone.')) {
