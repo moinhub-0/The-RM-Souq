@@ -22,8 +22,8 @@ export default function ContactSection() {
       // 1. Submit to Netlify Forms (which will send the email notification)
       await fetch("/", {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams(formData as any).toString()
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data) // Simplified for the example - usually it's x-www-form-urlencoded
       });
 
       // 2. Save to Firestore for the Admin Dashboard

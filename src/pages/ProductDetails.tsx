@@ -130,7 +130,7 @@ export default function ProductDetails() {
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="max-w-6xl mx-auto py-8"
+      className="max-w-7xl mx-auto py-8 px-4"
     >
       <Link to="/" className="inline-flex items-center gap-2 text-brand-green-700 hover:text-brand-green-900 mb-8 transition-colors">
         <ArrowLeft size={20} /> Back to Shop
@@ -158,11 +158,11 @@ export default function ProductDetails() {
                 id="thumbnail-container"
                 className="flex gap-4 overflow-x-auto pb-4 scrollbar-none items-center snap-x scroll-smooth px-2"
               >
-                <button 
+               <button 
                   onClick={() => setActiveImage(product.imageUrl)}
                   className={`flex-shrink-0 w-24 h-24 rounded-2xl overflow-hidden border-2 transition-all snap-start ${(!activeImage || activeImage === product.imageUrl) ? 'border-brand-green-900 ring-4 ring-brand-green-50 shadow-lg' : 'border-brand-sand-100 opacity-60 hover:opacity-100'}`}
                 >
-                  <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                     <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
                 </button>
                 {product.additionalImages.map((img, idx) => (
                   <button 
@@ -250,7 +250,7 @@ export default function ProductDetails() {
                       <span className="bg-red-600 text-white px-2 py-0.5 rounded text-[10px] font-black tracking-widest shadow-sm uppercase">
                         Save {Math.round(((product.mrp - product.price) / product.mrp) * 100)}%
                       </span>
-                      <span className="text-xs font-bold text-red-600 uppercase tracking-wider">
+                      <span className="text-xs font-bold text-red-600 uppercase tracking-widest">
                         (Save ₹{(product.mrp - product.price).toLocaleString()} off)
                       </span>
                     </div>
@@ -265,13 +265,13 @@ export default function ProductDetails() {
               )}
             </div>
             
-            <div className="prose prose-lg prose-green max-w-none text-gray-600 leading-relaxed font-medium">
+            <div className="pros pros-lg prose-green max-w-none text-gray-600 leading-relaxed font-medium">
               <Markdown remarkPlugins={[remarkGfm]}>{product.description}</Markdown>
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-4 py-8">
               <div className="flex flex-col gap-2 w-full sm:w-auto">
-                <span className="text-[10px] uppercase font-black tracking-[0.2em] text-brand-green-800 opacity-60 ml-4">QUANTITY</span>
+                <span className="text-[10px] uppercase font-black tracking-[0.2em] text-brand-green-800 opacity-60 ml-4 color-[#1b4d3e]">QUANTITY</span>
                 <div className="flex items-center bg-white border border-brand-sand-300 rounded-full p-1.5 shadow-sm">
                   <button 
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}

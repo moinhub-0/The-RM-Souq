@@ -40,7 +40,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              onToggleWishlist(e, product.id);
+             onToggleWishlist(e, product.id);
             }}
             className={`p-2 rounded-full backdrop-blur-sm transition-colors shadow-sm ${isWished ? 'bg-red-50 text-red-500' : 'bg-white/90 text-gray-400 hover:text-red-500'}`}
           >
@@ -94,7 +94,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </div>
             {product.mrp && product.mrp > product.price && (
               <div className="flex items-center gap-1 mt-1">
-                <span className="text-[9px] uppercase tracking-wider font-black text-red-600 bg-red-50 px-1.5 py-0.5 rounded">
+                <span className="text-[9px] uppercase tracking-widest font-black text-red-600 bg-red-50 px-1.5 py-0.5 rounded">
                   Save {Math.round(((product.mrp - product.price) / product.mrp) * 100)}%
                 </span>
               </div>

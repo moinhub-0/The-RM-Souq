@@ -51,4 +51,3 @@ export const SHOP_PRODUCTS: Product[] = [
     isFeatured: false
   }
 ];
-

@@ -70,7 +70,7 @@ export default function SidebarMenu() {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={closeSidebar}
-                  className={`flex items-center gap-4 px-8 py-4 transition-colors font-medium text-brand-sand-100 hover:bg-brand-green-800 hover:text-brand-sand-50`}
+                  className="flex items-center gap-4 px-8 py-4 transition-colors font-medium text-brand-sand-100 hover:bg-brand-green-800 hover:text-brand-sand-50"
                 >
                   <Icon size={20} className="opacity-70" />
                   {link.name}

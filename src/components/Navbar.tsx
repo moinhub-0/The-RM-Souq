@@ -38,7 +38,7 @@ export default function Navbar() {
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5 }}
-      className="bg-brand-green-900 text-brand-sand-50 sticky top-0 z-50 shadow-md"
+      className="bg-brand-green-900 text-brand-sand-50 stick top-0 z-50 shadow-md"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">

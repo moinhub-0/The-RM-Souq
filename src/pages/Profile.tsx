@@ -78,7 +78,7 @@ export default function Profile() {
           </div>
           <div className="flex gap-3">
             <Link 
-              to="/my-orders"
+              to="/my-orders" 
               className="flex items-center gap-2 text-brand-green-700 hover:text-brand-green-900 transition-colors font-medium px-4 py-2 rounded-lg bg-brand-sand-50"
             >
               <ShoppingBag size={18} />
@@ -131,32 +131,32 @@ export default function Profile() {
                       key={product.id} 
                       className="flex gap-4 p-4 rounded-2xl border border-brand-sand-200 bg-white"
                     >
-                    <img src={product.imageUrl || undefined} alt={product.name} className="w-20 h-20 object-cover rounded-xl bg-brand-sand-100" />
+                      <img src={product.imageUrl || undefined} alt={product.name} className="w-20 h-20 object-cover rounded-xl bg-brand-sand-100" />
                     <div className="flex-1 flex flex-col justify-between">
-                      <div>
-                        <Link to={`/product/${product.id}`} className="font-medium text-brand-green-900 hover:text-brand-green-700 transition-colors">
-                          {product.name}
-                        </Link>
-                        <p className="text-brand-green-700 font-medium text-sm mt-1">â¹. {product.price.toLocaleString()}</p>
+                        <div>
+                          <Link to={`/product/${product.id}`} className="font-medium text-brand-green-900 hover:text-brand-green-700 transition-colors">
+                              {product.name}
+                          </Link>
+                          <p className="text-brand-green-700 font-medium text-sm mt-1">₹ {product.price.toLocaleString()}</p>
+                        </div>
+                        <div className="flex items-center gap-2 mt-2">
+                          <button 
+                            onClick={() => handleMoveToCart(product.id)}
+                            className="text-xs bg-brand-green-900 text-brand-gold-400 px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-brand-green-800 transition-colors flex-1 justify-center"
+                          >
+                            <ShoppingCart size={14} /> Move to Cart
+                          </button>
+                          <button 
+                            onClick={() => toggleWishlist(product.id)}
+                            className="p-1.5 text-gray-400 hover:text-red-500 bg-brand-sand-50 rounded-lg transition-colors border border-brand-sand-200"
+                            title="Remove from Wishlist"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 mt-2">
-                        <button 
-                          onClick={() => handleMoveToCart(product.id)}
-                          className="text-xs bg-brand-green-900 text-brand-gold-400 px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-brand-green-800 transition-colors flex-1 justify-center"
-                        >
-                          <ShoppingCart size={14} /> Move to Cart
-                        </button>
-                        <button 
-                          onClick={() => toggleWishlist(product.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-500 bg-brand-sand-50 rounded-lg transition-colors border border-brand-sand-200"
-                          title="Remove from Wishlist"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  ))}
                 </AnimatePresence>
               </div>
             ) : (

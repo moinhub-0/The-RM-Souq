@@ -78,13 +78,13 @@ export default function MyOrders() {
         My Orders
       </h1>
 
-      {orders.length === 0 ? (
+      {orders.filter(o => o.status !== 'pending').length === 0 ? (
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="bg-brand-sand-50 p-12 text-center rounded-2xl border border-brand-sand-200"
         >
-          <p className="text-gray-500 text-lg mb-4">You have not placed any orders yet.</p>
+          <p className="text-gray-500 text-lg mb-4">You have no active or shipped orders at the moment.</p>
           <a href="/" className="text-brand-gold-600 hover:text-brand-gold-700 font-medium hover:underline">
             Start Shopping
           </a>
@@ -92,7 +92,7 @@ export default function MyOrders() {
       ) : (
         <div className="space-y-6">
           <AnimatePresence>
-            {orders.map((order, index) => (
+            {orders.filter(o => o.status !== 'pending').map((order, index) => (
               <motion.div 
                 key={order.id} 
                 initial={{ opacity: 0, y: 20 }}
@@ -124,11 +124,11 @@ export default function MyOrders() {
                       order.status === 'cancelled' ? 'bg-red-50 text-red-700 border border-red-100' :
                       'bg-gray-50 text-gray-700 border border-gray-100'
                     }`}>
-                      {order.status === 'pending' && <Clock size={12} />}
-                      {order.status === 'shipped' && <Truck size={12} />}
-                      {order.status === 'completed' && <PackageCheck size={12} />}
-                      {order.status === 'cancelled' && <XCircle size={12} />}
-                      {order.status}
+                        {order.status === 'pending' && <Clock size={12} />}
+                        {order.status === 'shipped' && <Truck size={12} />}
+                        {order.status === 'completed' && <PackageCheck size={12} />}
+                        {order.status === 'cancelled' && <XCircle size={12} />}
+                        {order.status}
                     </span>
                   </div>
                 </div>
@@ -138,16 +138,16 @@ export default function MyOrders() {
                 <div className="mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
                   <div className="bg-[#0a3d1d]/5 border border-[#0a3d1d]/10 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
-                      <div className="bg-[#0a3d1d] p-3 rounded-xl text-white">
-                        <Truck size={24} />
-                      </div>
+                        <div className="bg-[#0a3d1d] p-3 rounded-xl text-white">
+                          <Truck size={24} />
+                        </div>
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-[#0a3d1d] opacity-60">Shipment Status</p>
-                        <p className="text-sm font-bold text-[#0a3d1d]">Your order has been shipped!</p>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-[#0a3d1d] opacity-60">Shipment Status</p>
+                          <p className="text-sm font-bold text-[#0a3d1d]">Your order has been shipped!</p>
                         <p className="text-xs text-brand-green-800/70">Tracking ID: {order.trackingId}</p>
                       </div>
                     </div>
-                    <a 
+                      <a 
                       href={`https://thermsouq.shiprocket.co/tracking/${order.trackingId}`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -176,7 +176,7 @@ export default function MyOrders() {
                   <h3 className="font-medium text-brand-green-900 text-sm uppercase tracking-wider mb-2 flex items-center gap-2">
                     <MapPin size={16} /> Shipping Address
                   </h3>
-                  <div className="text-sm text-gray-600 bg-brand-sand-50 p-4 rounded-xl">
+                   <div className="text-sm text-gray-600 bg-brand-sand-50 p-4 rounded-xl">
                     <p>{order.shippingDetails?.fullAddress}</p>
                     <p>{order.shippingDetails?.city}, {order.shippingDetails?.district ? order.shippingDetails?.district + ', ' : ''}{order.shippingDetails?.state}</p>
                     <p>Pincode: {order.shippingDetails?.pincode}</p>

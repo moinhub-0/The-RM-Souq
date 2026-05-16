@@ -13,10 +13,6 @@ export default function Footer() {
     return null;
   }
 
-  // Do not show ContactSection on the contact page itself if the user is already on it?
-  // Wait, let's keep it consistent and show it, but wait, the actual contact page *is* ContactSection now.
-  // We can redirect the Contact page to use ContactSection instead.
-
   return (
     <>
       {location.pathname !== '/contact' && <ContactSection />}

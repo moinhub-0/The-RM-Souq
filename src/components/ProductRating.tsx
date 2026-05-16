@@ -3,47 +3,49 @@ import { Star } from 'lucide-react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
-export const ProductRating = ({ productId, className = "" }: { productId: string, className?: string }) => {
-  const [rating, setRating] = useState({ average: 0, count: 0 });
+interface ProductRatingProps {
+  productId: string;
+  className?: string;
+}
+
+export const ProductRating: React.FC<ProductRatingProps> = ({ productId, className = '' }) => {
+  const [rating, setRating] = useState<number>(0);
+  const [count, setCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let isMounted = true;
-    const fetchRatings = async () => {
+    const fetchRating = async () => {
       try {
-        const reviewsRef = collection(db, 'reviews');
-        const q = query(reviewsRef, where('productId', '==', productId));
+        const q = query(collection(db, 'reviews'), where('productId', '==', productId));
         const snap = await getDocs(q);
         if (snap.empty) {
-          if (isMounted) {
-            setRating({ average: 0, count: 0 });
-            setLoading(false);
-          }
-          return;
-        }
-        
-        let sum = 0;
-        snap.forEach(doc => sum += doc.data().rating);
-        if (isMounted) {
-          setRating({ average: sum / snap.size, count: snap.size });
-          setLoading(false);
+          setRating(0);
+          setCount(0);
+        } else {
+          let total = 0;
+          snap.forEach(doc => total += doc.data().rating || 0);
+          setRating(total / snap.size);
+          setCount(snap.size);
         }
       } catch (e) {
+        console.error(e);
+      } finally {
         setLoading(false);
       }
     };
-    fetchRatings();
-    return () => { isMounted = false; };
+    fetchRating();
   }, [productId]);
 
-  if (loading || rating.count === 0) return null;
+  if (loading || count === 0) return <div className={`h-4 ${className}`} />;
 
   return (
-    <div className={`flex items-center gap-1.5 text-xs font-bold text-gray-700 ${className}`}>
-      <Star size={12} className="text-[#fbbf24]" fill="currentColor" />
-      <span>{rating.average.toFixed(1)}</span>
-      <span className="w-px h-3 bg-gray-300 mx-0.5"></span>
-      <span className="text-gray-500">{rating.count}</span>
+    <div className={`flex items-center gap-1.5 ${className}`}>
+      <div className="flex text-yellow-500">
+        {[1, 2, 3, 4, 5].map((s) => (
+          <Star key={s} size={12} fill={rating >= s ? "currentColor" : "none"} className={rating >= s ? "" : "text-gray-200"} />
+        ))}
+      </div>
+      <span className="text-[10px] font-bold text-gray-400">({count})</span>
     </div>
   );
 };
