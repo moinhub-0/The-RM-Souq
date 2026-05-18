@@ -39,11 +39,19 @@ interface Order {
   isGift?: boolean;
 }
 
+import AdminMessages from './AdminMessages';
+import AdminDiscounts from './AdminDiscounts';
+import AdminProductsModal from './AdminProductsModal';
+import AdminAboutUs from './AdminAboutUs';
+import AdminLegal from './AdminLegal';
+import AdminContactEdit from './AdminContactEdit';
+import ImageUpload from '../components/ImageUpload';
+
 export default function AdminDashboard() {
   const { user, profile, logout } = useAuth();
-  const { products, loadingProducts } = useProducts();
+  const { products, loadingProducts, deleteProduct } = useProducts();
   const { settings, updateSettings } = useSettings();
-  const [activeTab, setActiveTab] = useState<'analytics' | 'products' | 'customers' | 'messages' | 'recent_orders' | 'edit_about' | 'edit_legal' | 'discounts' | 'business'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'products' | 'customers' | 'messages' | 'recent_orders' | 'edit_about' | 'edit_legal' | 'edit_contact' | 'discounts' | 'business'>('analytics');
   
   // Products State
   const [isAddingProduct, setIsAddingProduct] = useState(false);
@@ -158,6 +166,7 @@ export default function AdminDashboard() {
               { id: 'messages', label: 'Messages' },
               { id: 'recent_orders', label: 'Recent Orders' },
               { id: 'edit_about', label: 'Edit About Us' },
+              { id: 'edit_contact', label: 'Edit Contact' },
               { id: 'edit_legal', label: 'Edit Legal Pages' },
               { id: 'discounts', label: 'Discount Codes' },
               { id: 'business', label: 'Business Details' }
@@ -214,7 +223,7 @@ export default function AdminDashboard() {
             <div className="bg-white p-6 rounded-2xl border border-brand-sand-200 shadow-sm overflow-hidden">
               <h3 className="text-lg font-serif font-bold text-gray-800 mb-6">Daily Orders & Revenue (Last 7 Days)</h3>
               <div className="h-64 w-full" style={{ minWidth: 0 }}>
-                <ResponsiveContainer width="99%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <LineChart data={[
                     { name: 'Sun', orders: 0, revenue: 0 },
                     { name: 'Mon', orders: 0, revenue: 0 },
@@ -246,7 +255,7 @@ export default function AdminDashboard() {
             <div className="bg-white p-6 rounded-2xl border border-brand-sand-200 shadow-sm overflow-hidden">
               <h3 className="text-lg font-serif font-bold text-gray-800 mb-6">Website Visits (Last 7 Days)</h3>
               <div className="h-64 w-full" style={{ minWidth: 0 }}>
-                <ResponsiveContainer width="99%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <LineChart data={[
                     { name: 'Sun', newVisits: 0, totalVisits: 0 },
                     { name: 'Mon', newVisits: 2, totalVisits: 2 },
@@ -300,7 +309,11 @@ export default function AdminDashboard() {
                     </div>
                     <div className="flex flex-col border-l border-gray-100 pl-4 justify-between h-full py-1">
                       <button onClick={() => setEditingProduct(product)} className="p-1.5 text-blue-500 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"><Edit2 size={14} /></button>
-                      <button className="p-1.5 text-red-500 bg-red-50 hover:bg-red-100 rounded-md transition-colors mt-2"><Trash2 size={14} /></button>
+                      <button onClick={async () => {
+                        if (confirm('Delete this product?')) {
+                          await deleteProduct(product.id);
+                        }
+                      }} className="p-1.5 text-red-500 bg-red-50 hover:bg-red-100 rounded-md transition-colors mt-2"><Trash2 size={14} /></button>
                     </div>
                   </div>
                 </div>
@@ -364,227 +377,27 @@ export default function AdminDashboard() {
         )}
 
         {activeTab === 'messages' && (
-          <div className="space-y-6">
-            <h2 className="text-lg font-serif font-bold text-gray-800 mb-4">Contact Form Messages</h2>
-            <div className="space-y-4">
-              {[
-                { name: 'Moinuddin Hassan', email: 'modmoinuddinhassan184@gmail.com', phone: '7853903438', text: 'Hgijjj', date: '16/05/2026, 17:14:03' },
-                { name: 'QA Tester', email: 'qa@example.com', phone: '+919876543210', text: 'This is a test message.', date: '09/05/2026, 10:59:58' },
-                { name: 'MoinComp MoinComp', email: 'moincomp06@gmail.com', phone: '7853903438', text: 'hkv.', date: '30/04/2026, 14:45:35' }
-              ].map((msg, i) => (
-                <div key={i} className="bg-white rounded-[20px] border border-gray-200 shadow-sm p-6 relative">
-                  <div className="absolute top-6 right-6 bg-[#f4f3f0] text-gray-500 text-[10px] font-bold px-3 py-1 rounded-md">{msg.date}</div>
-                  <h4 className="font-serif text-gray-800 font-bold mb-1">{msg.name}</h4>
-                  <div className="flex items-center gap-4 text-xs text-gray-500 mb-4 font-medium">
-                    <span className="flex items-center gap-1 border-b border-gray-300 pb-0.5"><span className="opacity-50">✉</span> {msg.email}</span>
-                    <span className="flex items-center gap-1 border-b border-gray-300 pb-0.5"><span className="opacity-50">📞</span> {msg.phone}</span>
-                  </div>
-                  <div className="bg-[#fbfa-f9] bg-stone-50 p-4 rounded-xl text-sm text-gray-700 mb-4">
-                    {msg.text}
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <button className="px-4 py-2 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg flex items-center gap-1 transition-colors"><Trash2 size={12} /> Delete</button>
-                    <button className="px-4 py-2 text-xs font-bold text-white bg-[#0d2b22] hover:bg-[#0a2016] rounded-lg flex items-center gap-1 transition-colors"><span className="opacity-70">✉</span> Reply via Email</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <AdminMessages />
         )}
 
         {/* Edit About Us */}
         {activeTab === 'edit_about' && (
-          <div className="bg-white rounded-[20px] border border-gray-200 shadow-sm p-8">
-            <h2 className="text-xl font-serif text-gray-800 flex items-center gap-2 mb-8"><Edit2 size={18} className="text-[#b48d3d]" /> Edit About Us Page</h2>
-            
-            <div className="space-y-8">
-              <div>
-                <h3 className="text-sm font-bold text-gray-800 mb-3 border-b border-gray-200 pb-2">Hero Banner</h3>
-                <div className="rounded-xl overflow-hidden border border-gray-200 bg-gray-50 h-32 flex items-center justify-center relative group">
-                  {settings.homePageBanner ? (
-                    <img src={settings.homePageBanner} alt="Hero Banner" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-gray-400 text-sm">No banner image set.</span>
-                  )}
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                    <button className="bg-white text-gray-800 px-4 py-2 text-xs font-bold rounded-lg shadow-sm">Change Image</button>
-                  </div>
-                </div>
-              </div>
+          <AdminAboutUs />
+        )}
 
-              <div>
-                <h3 className="text-sm font-bold text-gray-800 mb-3 border-b border-gray-200 pb-2">Vision Section</h3>
-                <label className="block text-[11px] text-gray-500 mb-1">Vision Text</label>
-                <textarea rows={3} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 outline-none focus:border-[#b48d3d]" defaultValue="A modern digital marketplace born from a distinct vision: bringing high-quality, authentic products like premium dates to customers across India. We merge seamless technology with reliable service to deliver an exceptional e-commerce experience." />
-              </div>
-
-              <div>
-                <h3 className="text-sm font-bold text-gray-800 mb-3 border-b border-gray-200 pb-2">The Founder</h3>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-[11px] text-gray-500 mb-1">Name</label>
-                    <input type="text" className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 outline-none focus:border-[#b48d3d]" defaultValue="Moinuddin Hasan" />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] text-gray-500 mb-1">Role Tag</label>
-                    <input type="text" className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 outline-none focus:border-[#b48d3d]" defaultValue="The Founder" />
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-[11px] text-gray-500 mb-1">Bio Paragraph 1</label>
-                    <textarea rows={2} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 outline-none focus:border-[#b48d3d]" defaultValue="Moinuddin is the technical visionary driving our platform. Having recently completed his 10th grade, he flawlessly balances his college studies with sharp business development skills." />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] text-gray-500 mb-1">Bio Paragraph 2</label>
-                    <textarea rows={2} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 outline-none focus:border-[#b48d3d]" defaultValue="As a self-taught expert in website design and digital systems, he architected and built the entire RM Souq infrastructure to bridge the gap between traditional products and modern e-commerce." />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-bold text-gray-800 mb-3 border-b border-gray-200 pb-2">The Co-Founder</h3>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-[11px] text-gray-500 mb-1">Name</label>
-                    <input type="text" className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 outline-none focus:border-[#b48d3d]" defaultValue="Reyan Ansari" />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] text-gray-500 mb-1">Role Tag</label>
-                    <input type="text" className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 outline-none focus:border-[#b48d3d]" defaultValue="The Co-Founder" />
-                  </div>
-                </div>
-              </div>
-
-               <div className="flex justify-end pt-4">
-                <button className="bg-[#0d2b22] text-white px-6 py-3 rounded-lg text-sm font-medium hover:bg-[#0a2016] transition-colors flex items-center gap-2 shadow-sm">
-                  <Save size={16} /> Save About Settings
-                </button>
-              </div>
-            </div>
-          </div>
+        {/* Edit Contact Us */}
+        {activeTab === 'edit_contact' && (
+          <AdminContactEdit />
         )}
 
         {/* Edit Legal Pages */}
         {activeTab === 'edit_legal' && (
-          <div className="bg-white rounded-[20px] border border-gray-200 shadow-sm p-8">
-            <h2 className="text-xl font-serif text-gray-800 flex items-center gap-2 mb-2"><Edit2 size={18} className="text-[#b48d3d]" /> Edit Legal & Policy Pages</h2>
-            <p className="text-xs text-gray-500 mb-8">You can use Markdown to format these pages.</p>
-            
-            <div className="space-y-6">
-              {[
-                { title: 'Privacy Policy', val: `At The RM Souq, accessible from the-rm-souq.netlify.app, one of our main priorities is the privacy of our visitors. This Privacy Policy document contains types of information that is collected and recorded by The RM Souq and how we use it.
-
-## 1. Information We Collect
-When you visit our store or make a purchase, we collect the following information to provide you with a smooth shopping experience:
-- **Personal Identifiable Information:** Name, shipping address, billing address, email address, and phone number.
-- **Order Details:** Information about the products you purchase (e.g. dates).
-- **Device Information:** IP address, browser type, and cookies used to improve site` },
-                { title: 'Shipping Policy', val: `## Order Processing
-All orders are processed within 1-2 business days after payment confirmation. Orders placed on weekends or holidays will be processed on the next working day.
-
-## Delivery Timeframe
-- **Metro Cities:** 2-4 business days from dispatch
-- **Other Locations:** 3-7 business days from dispatch
-- **Remote Areas:** 7-14 business days from dispatch
-
-## Shipping Charges
-- **Standard Shipping:** ₹0-30 depending on location (Prepaid)` },
-                { title: 'Terms & Conditions', val: `## Agreement to Terms
-By accessing the-rm-souq.netlify.app, you agree to be bound by these Terms and Conditions.
-These terms apply to all visitors and customers.
-
-## Pricing and Payments
-All prices are in INR. We reserve the right to change prices without notice. Payments are accepted via UPI (Google Pay) and other listed methods. Orders are only confirmed once payment is verified.` },
-                { title: 'Cancellation Policy', val: `## Before Dispatch
-You can cancel your order within 12 hours of placing it or before it has been handed over to our shipping partner (Shiprocket), whichever is earlier. For cancellations made during this window, a full refund will be processed.
-
-## After Dispatch
-Once an order is dispatched, it cannot be canceled. If you refuse the delivery, the outward and inward shipping charges will be deducted from your refund.
-
-## How to Cancel
-To request a cancellation, please WhatsApp us at **+91 9827548272** or email` },
-                { title: 'Return & Refund Policy', val: `## Food & Hygiene Policy
-Due to the nature of our products (Food/Health Supplements), we do not accept returns once the product seal is broken or the package is opened, unless the product is defective or damaged upon arrival.
-
-## Damaged or Incorrect Items
-If you receive a damaged product or the wrong item:
-1. You must inform us within 24 hours of delivery.
-2. You must provide an unboxing video clearly showing the shipping label and the damage/wrong item.
-3. Once verified, we will send a replacement at no extra cost or initiate a refund.` },
-              ].map(policy => (
-                <div key={policy.title}>
-                  <h3 className="text-sm font-bold text-gray-800 mb-3 border-b border-gray-200 pb-2">{policy.title}</h3>
-                  <textarea rows={4} className="w-full font-mono text-[12px] bg-white border border-gray-200 rounded-xl px-4 py-3 text-gray-600 outline-none focus:border-[#b48d3d] resize-y" defaultValue={policy.val} />
-                </div>
-              ))}
-              <button className="w-full bg-[#0d2b22] text-white px-6 py-4 rounded-xl text-sm font-medium hover:bg-[#0a2016] transition-colors flex items-center justify-center gap-2 shadow-sm mt-4">
-                <Save size={18} /> Save Legal Pages
-              </button>
-            </div>
-          </div>
+          <AdminLegal />
         )}
 
         {/* Discount Codes */}
         {activeTab === 'discounts' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-[20px] border border-gray-200 shadow-sm p-6">
-              <h3 className="text-lg font-serif text-gray-800 mb-4">Create New Discount Code</h3>
-              <div className="grid grid-cols-5 gap-4 items-end">
-                <div className="col-span-1">
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Code</label>
-                  <input type="text" placeholder="SAVE20" className="w-full text-sm bg-white border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-[#b48d3d]" />
-                </div>
-                <div className="col-span-1">
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Type</label>
-                  <select className="w-full text-sm bg-white border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-[#b48d3d]">
-                    <option>Percentage (%)</option>
-                    <option>Flat Rate</option>
-                  </select>
-                </div>
-                <div className="col-span-1">
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Discount %</label>
-                  <input type="number" defaultValue="0" className="w-full text-sm bg-white border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-[#b48d3d]" />
-                </div>
-                <div className="col-span-1">
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Min. Purchase (₹)</label>
-                  <input type="number" defaultValue="0" className="w-full text-sm bg-white border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-[#b48d3d]" />
-                </div>
-                <div className="col-span-1">
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Limit Per Person</label>
-                  <input type="number" defaultValue="0" className="w-full text-sm bg-white border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-[#b48d3d]" />
-                </div>
-              </div>
-              <button className="w-full mt-4 bg-[#0d2b22] text-white px-4 py-3 rounded-xl text-sm font-bold hover:bg-[#0a2016] flex justify-center items-center gap-2">
-                <Plus size={16} /> Add Code
-              </button>
-            </div>
-            
-            <div className="bg-white rounded-[20px] border border-gray-200 shadow-sm overflow-hidden">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-[#f4f3f0] border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-gray-500">Code</th>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-gray-500">Discount</th>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-gray-500">Min. Purchase</th>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-gray-500">Limit/Person</th>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-gray-500">Total Used</th>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-gray-500">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  <tr>
-                    <td className="px-6 py-4 font-bold text-gray-800">FIRST50</td>
-                    <td className="px-6 py-4 text-gray-600">₹50</td>
-                    <td className="px-6 py-4 text-gray-600">₹500</td>
-                    <td className="px-6 py-4 text-gray-600">1 times</td>
-                    <td className="px-6 py-4 text-gray-600">0</td>
-                    <td className="px-6 py-4"><button className="text-red-500 hover:text-red-700"><Trash2 size={16} /></button></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <AdminDiscounts />
         )}
 
         {/* Business Details Tab */}
@@ -592,7 +405,7 @@ If you receive a damaged product or the wrong item:
            <div className="max-w-3xl space-y-8">
              <div className="bg-white rounded-[20px] border border-gray-200 p-8 shadow-sm">
                 <h3 className="text-xl font-serif text-gray-800 flex items-center gap-2 mb-2">
-                  <SettingsIcon size={18} className="text-[#b48d3d]" /> Business Contact Details
+                  <SettingsIcon size={18} className="text-[#b48d3d]" /> Business Contact & Settings
                 </h3>
                 <p className="text-[11px] text-gray-500 italic mb-6">Updating these will reflect everywhere on the site (Footer, Checkout, WhatsApp links, etc.)</p>
                 <div className="space-y-4">
@@ -617,20 +430,41 @@ If you receive a damaged product or the wrong item:
                       <textarea value={settings.address} onChange={e => updateSettings({ ...settings, address: e.target.value })} rows={3} className="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm text-gray-800 outline-none focus:border-[#b48d3d] resize-none" />
                     </div>
                   </div>
-                  
-                  <div className="pt-4 border-t border-gray-100">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2 block">Home Page Banner</label>
-                    {settings.homePageBanner ? (
-                      <div className="w-full h-32 rounded-xl border border-gray-200 overflow-hidden mb-4">
-                        <img src={settings.homePageBanner} className="w-full h-full object-cover" alt="" />
-                      </div>
-                    ) : null}
+
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2 block">Standard Shipping Charge (₹)</label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 opacity-50">₹</span>
+                      <input type="number" value={settings.shippingCharge ?? 30} onChange={e => updateSettings({ ...settings, shippingCharge: Number(e.target.value) })} className="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm text-gray-800 outline-none focus:border-[#b48d3d]" />
+                    </div>
                   </div>
 
+                  {/* Social Media */}
                   <div className="pt-4 border-t border-gray-100">
-                     <button className="w-full bg-[#0d2b22] text-white px-6 py-4 rounded-xl text-sm font-bold shadow-sm hover:bg-[#0a2016] transition-colors">
-                       Save Changes
-                     </button>
+                    <h4 className="text-sm font-bold text-gray-800 mb-4">Social Media Links</h4>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2 block">Facebook Page URL</label>
+                        <input type="text" value={settings.facebook || ''} onChange={e => updateSettings({ ...settings, facebook: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 outline-none focus:border-[#b48d3d]" placeholder="https://facebook.com/..." />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2 block">Instagram Page URL</label>
+                        <input type="text" value={settings.instagram || ''} onChange={e => updateSettings({ ...settings, instagram: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 outline-none focus:border-[#b48d3d]" placeholder="https://instagram.com/..." />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2 block">YouTube Channel URL</label>
+                        <input type="text" value={settings.youtube || ''} onChange={e => updateSettings({ ...settings, youtube: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 outline-none focus:border-[#b48d3d]" placeholder="https://youtube.com/..." />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-4 border-t border-gray-100">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2 block">Home Page Banner (Image/Video URL)</label>
+                    <ImageUpload 
+                      currentImage={settings.homePageBanner} 
+                      onSuccess={(url) => updateSettings({ ...settings, homePageBanner: url })}
+                      folder="banners"
+                    />
                   </div>
                 </div>
              </div>
@@ -643,6 +477,15 @@ If you receive a damaged product or the wrong item:
                 </button>
              </div>
            </div>
+        )}
+        {typeof isAddingProduct === 'boolean' && (isAddingProduct || editingProduct) && (
+          <AdminProductsModal 
+            product={editingProduct} 
+            onClose={() => {
+              setIsAddingProduct(false);
+              setEditingProduct(null);
+            }} 
+          />
         )}
       </main>
 

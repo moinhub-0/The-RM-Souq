@@ -10,6 +10,7 @@ interface ContactSettings {
   instagram?: string;
   youtube?: string;
   homePageBanner?: string;
+  shippingCharge?: number;
 }
 
 interface SettingsContextType {
@@ -25,7 +26,8 @@ const defaultSettings: ContactSettings = {
   facebook: '',
   instagram: '',
   youtube: '',
-  homePageBanner: ''
+  homePageBanner: '',
+  shippingCharge: 30
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);

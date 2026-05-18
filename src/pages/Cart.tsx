@@ -122,7 +122,7 @@ export default function Cart() {
                    <span>₹{totalPrice.toLocaleString()}</span>
                  </div>
                  <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest">
-                   <span className="text-brand-sand-100/40">Logistics execution</span>
+                   <span className="text-brand-sand-100/40">Shipping Charges</span>
                    <span className="text-brand-gold-400">Calculated at checkout</span>
                  </div>
                  <div className="h-px bg-white/10" />

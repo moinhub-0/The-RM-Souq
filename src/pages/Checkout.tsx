@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   ShieldCheck, Truck, CreditCard, ChevronRight, 
@@ -8,13 +9,14 @@ import {
   ArrowLeft, CheckCircle2, Ticket, IndianRupee,
   Building2, Globe2, Landmark
 } from 'lucide-react';
-import { addDoc, collection, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, updateDoc, getDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function Checkout() {
-  const { items, totalPrice, clearCart } = useCart();
+  const { items, totalPrice, totalItems, clearCart } = useCart();
   const { user, profile } = useAuth();
+  const { settings } = useSettings();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
@@ -26,10 +28,20 @@ export default function Checkout() {
   const [coupon, setCoupon] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(0);
 
-  const [shippingCharge, setShippingCharge] = useState(0);
+  const [shippingCharge, setShippingCharge] = useState(30);
   const [isShippingFree, setIsShippingFree] = useState(false);
   const [isCalculatingShipping, setIsCalculatingShipping] = useState(false);
   const [shippingError, setShippingError] = useState('');
+
+  useEffect(() => {
+    if (totalItems > 1) {
+      setShippingCharge(0);
+      setIsShippingFree(true);
+    } else {
+      setShippingCharge(settings.shippingCharge ?? 30);
+      setIsShippingFree(false);
+    }
+  }, [settings.shippingCharge, totalItems]);
 
   // Shipping Form State (Pre-filled from profile if available)
   const [formData, setFormData] = useState({
@@ -80,13 +92,23 @@ export default function Checkout() {
           });
           const shipData = await shipRes.json();
           if (shipData.status === "success") {
-             setShippingCharge(shipData.finalCharge);
-             setIsShippingFree(shipData.isFree);
+             if (totalItems > 1) {
+               setShippingCharge(0);
+               setIsShippingFree(true);
+             } else {
+               setShippingCharge(settings.shippingCharge ?? 30);
+               setIsShippingFree(false);
+             }
           } else {
              // fallback
              setShippingError(shipData.message || "Could not calculate custom shipping");
-             setShippingCharge(0);
-             setIsShippingFree(false);
+             if (totalItems > 1) {
+               setShippingCharge(0);
+               setIsShippingFree(true);
+             } else {
+               setShippingCharge(settings.shippingCharge ?? 30);
+               setIsShippingFree(false);
+             }
           }
         } catch(err) {
           console.error("Shipping calc error:", err);
@@ -97,7 +119,7 @@ export default function Checkout() {
       }
     };
     fetchPincodeDetails();
-  }, [formData.pincode]);
+  }, [formData.pincode, settings.shippingCharge, totalItems]);
 
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
@@ -118,12 +140,30 @@ export default function Checkout() {
     }
   };
 
-  const handleApplyCoupon = () => {
-    if (coupon.toUpperCase() === 'FIRST10') {
-      setAppliedDiscount(totalPrice * 0.1);
-      alert("Coupon applied! 10% discount added.");
-    } else {
-      alert("Invalid coupon code.");
+  const handleApplyCoupon = async () => {
+    if (!coupon) return;
+    try {
+      const q = query(collection(db, 'discounts'), where('code', '==', coupon.toUpperCase()));
+      const snap = await getDocs(q);
+      if (snap.empty) {
+        alert("Invalid or expired coupon code.");
+        setAppliedDiscount(0);
+        return;
+      }
+      const discountDoc = snap.docs[0].data();
+      let discountAmount = 0;
+      if (discountDoc.type === 'percentage') {
+        discountAmount = (totalPrice * discountDoc.value) / 100;
+      } else {
+        discountAmount = discountDoc.value;
+      }
+      // Ensure discount doesn't exceed total price
+      discountAmount = Math.min(discountAmount, totalPrice);
+      setAppliedDiscount(discountAmount);
+      alert("Coupon applied successfully!");
+    } catch (e) {
+      console.error(e);
+      alert("Could not apply coupon.");
     }
   };
 
@@ -490,7 +530,7 @@ export default function Checkout() {
                         <h4 className="font-bold text-brand-green-900 flex items-center gap-2">
                           Standard Shipping (Prepaid)
                         </h4>
-                        <p className="text-xs text-gray-500 mt-1">Faster processing. Secure payment via GPay / PhonePe / Paytm.</p>
+                        <p className="text-xs text-gray-500 mt-1">₹{settings.shippingCharge ?? 30} Flat-rate shipping. Faster processing. Secure payment via GPay / PhonePe / Paytm.</p>
                       </div>
                       {formData.paymentMethod === 'UPI' && (
                         <div className="bg-brand-green-900 text-white rounded-full p-1 shadow-md">
@@ -613,7 +653,7 @@ export default function Checkout() {
                    </div>
                  )}
                  <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest">
-                   <span className="text-brand-sand-100/40">Shipping Charge</span>
+                   <span className="text-brand-sand-100/40">Shipping Charges</span>
                    <span className="flex items-center gap-2">
                      {isCalculatingShipping ? (
                        <span className="animate-pulse text-brand-gold-400">Calculating...</span>

@@ -151,7 +151,11 @@ If you receive a damaged product or the wrong item:
             animate={{ opacity: 1, y: 0 }}
             className="w-full relative h-[300px] md:h-[450px] rounded-[3rem] overflow-hidden shadow-2xl mb-12 group"
           >
-            <img src={aboutConfig.banner} alt="About Ruhani Souq" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
+            {aboutConfig.banner.endsWith('.mp4') ? (
+               <video src={aboutConfig.banner} autoPlay loop muted playsInline className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
+            ) : (
+               <img src={aboutConfig.banner} alt="About Ruhani Souq" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
+            )}
             <div className="absolute inset-0 bg-gradient-to-t from-brand-green-900/80 via-transparent to-transparent flex items-end justify-center p-8 md:p-12">
               <h1 className="text-4xl md:text-7xl font-serif text-white text-center leading-tight">
                 About The RM Souq
@@ -323,7 +327,11 @@ If you receive a damaged product or the wrong item:
             animate={{ opacity: 1, y: 0 }}
             className="w-full relative h-[300px] md:h-[450px] rounded-[3rem] overflow-hidden shadow-2xl mb-12 group"
           >
-            <img src={contactConfig.banner} alt="Contact Ruhani Souq" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
+            {contactConfig.banner.endsWith('.mp4') ? (
+               <video src={contactConfig.banner} autoPlay loop muted playsInline className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
+            ) : (
+               <img src={contactConfig.banner} alt="Contact Ruhani Souq" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
+            )}
             <div className="absolute inset-0 bg-gradient-to-t from-brand-green-900/80 via-transparent to-transparent flex items-end justify-center p-8 md:p-12">
               <h1 className="text-4xl md:text-7xl font-serif text-white text-center leading-tight">
                 Contact Us

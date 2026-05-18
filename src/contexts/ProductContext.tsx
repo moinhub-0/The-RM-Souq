@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { collection, onSnapshot, getDocs, writeBatch, doc } from 'firebase/firestore';
+import { collection, onSnapshot, getDocs, writeBatch, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 
 export interface Product {
@@ -65,6 +65,9 @@ interface ProductContextType {
   products: Product[];
   loadingProducts: boolean;
   seedInitialProducts: () => Promise<void>;
+  addProduct: (product: Omit<Product, 'id'>) => Promise<void>;
+  updateProduct: (id: string, data: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
 }
 
 const ProductContext = createContext<ProductContextType | null>(null);
@@ -90,6 +93,18 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
     return unsubscribe;
   }, []);
 
+  const addProduct = async (product: Omit<Product, 'id'>) => {
+    await addDoc(collection(db, 'products'), product);
+  };
+
+  const updateProduct = async (id: string, data: Partial<Product>) => {
+    await updateDoc(doc(db, 'products', id), data);
+  };
+
+  const deleteProduct = async (id: string) => {
+    await deleteDoc(doc(db, 'products', id));
+  };
+
   const seedInitialProducts = async () => {
     try {
       const batch = writeBatch(db);
@@ -106,7 +121,7 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <ProductContext.Provider value={{ products, loadingProducts, seedInitialProducts }}>
+    <ProductContext.Provider value={{ products, loadingProducts, seedInitialProducts, addProduct, updateProduct, deleteProduct }}>
       {children}
     </ProductContext.Provider>
   );

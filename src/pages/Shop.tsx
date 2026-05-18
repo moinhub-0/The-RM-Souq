@@ -31,12 +31,23 @@ export default function Shop() {
         transition={{ duration: 0.6 }}
         className="bg-brand-green-800 text-brand-sand-50 rounded-3xl p-6 sm:p-10 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center gap-8"
       >
-        <div 
-          className="absolute inset-0 opacity-20 bg-cover bg-center transition-all duration-700" 
-          style={{ 
-            backgroundImage: `url('${settings.homePageBanner || 'https://images.unsplash.com/photo-1549673967-df509cacee8f?auto=format&fit=crop&w=1200&q=80'}')`
-          }}
-        />
+        {settings.homePageBanner?.endsWith('.mp4') ? (
+          <video 
+            src={settings.homePageBanner}
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover opacity-20 transition-all duration-700"
+          />
+        ) : (
+          <div 
+            className="absolute inset-0 opacity-20 bg-cover bg-center transition-all duration-700" 
+            style={{ 
+              backgroundImage: `url('${settings.homePageBanner || 'https://images.unsplash.com/photo-1549673967-df509cacee8f?auto=format&fit=crop&w=1200&q=80'}')`
+            }}
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-r from-brand-green-900/40 to-transparent z-0" />
         <div className="relative z-10 flex-1 space-y-4 text-center md:text-left">
           <motion.h1 

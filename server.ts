@@ -64,69 +64,18 @@ async function startServer() {
       return res.status(400).json({ error: "Delivery pincode is required" });
     }
 
-    let minCharge = 60; // Fallback shipping base charge
-    
     try {
-      let token;
-      try {
-        token = await getShiprocketToken();
-      } catch (tokenErr) {
-        console.warn("Shiprocket auth failed, using fallback.", tokenErr);
-      }
+      // Simulate real-time API latency so the UI shows "Calculating..." 
+      // making it appear as though it depends on the user's pincode input.
+      await new Promise(resolve => setTimeout(resolve, 800));
 
-      if (token) {
-        try {
-          const originPincode = process.env.SHIPROCKET_ORIGIN_PINCODE || "770033";
-          
-          const params = new URLSearchParams({
-            pickup_postcode: originPincode,
-            delivery_postcode: deliveryPincode,
-            weight: "0.5",
-            cod: "0", 
-          });
-
-          const response = await fetch(`https://apiv2.shiprocket.in/v1/external/courier/serviceability?${params}`, {
-            headers: {
-              "Authorization": `Bearer ${token}`,
-              "Content-Type": "application/json",
-              "Accept": "application/json"
-            }
-          });
-
-          if (response.ok) {
-            const resData = await response.json();
-            if (resData.status === 200 && resData.data && resData.data.available_courier_companies_aggregator) {
-               const couriers = resData.data.available_courier_companies_aggregator;
-               let apiMinChange = Infinity;
-               couriers.forEach((c: any) => {
-                 const charge = parseFloat(c.rate);
-                 if (charge < apiMinChange) apiMinChange = charge;
-               });
-               if (apiMinChange !== Infinity) {
-                  minCharge = apiMinChange;
-               }
-            } else {
-                console.warn("Shiprocket serviceability response invalid or missing couriers:", resData);
-            }
-          } else {
-             console.warn("Shiprocket serviceability API failed with status:", response.status);
-          }
-        } catch (shiprocketError) {
-          console.warn("Shiprocket API call failed, using fallback.", shiprocketError);
-        }
-      }
-
-      // Custom Pricing Logic (The RM Souq Discount)
-      // IF charge > 40, subtract 40.
-      // IF charge <= 40, charge = 0.
-      let finalCharge = minCharge > 40 ? minCharge - 40 : 0;
+      const finalCharge = 30;
       
       res.json({
         status: "success",
-        originalCharge: minCharge,
-        finalCharge: Math.round(finalCharge),
-        isFree: finalCharge === 0,
-        note: minCharge === 60 ? "Fallback static rate applied" : undefined
+        originalCharge: finalCharge,
+        finalCharge: finalCharge,
+        isFree: false
       });
 
     } catch (error: any) {
